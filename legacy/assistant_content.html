@@ -1,0 +1,168 @@
+    <style>
+        .oz-chat-row { display: flex; align-items: flex-end; gap: var(--oz-space-3); margin-bottom: var(--oz-space-2); width: 100%; }
+        .oz-chat-row-user { justify-content: flex-end; }
+        .oz-chat-row-bot { justify-content: flex-start; }
+        .oz-avatar { 
+            width: 32px; height: 32px; border-radius: 50%; background: var(--oz-color-primary-soft);
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+            border: 1px solid var(--oz-color-primary); margin-bottom: 4px;
+        }
+    </style>
+
+    <div class="oz-chat-container">
+      <div id="chatThread" class="oz-chat-thread">
+        <div class="oz-chat-row oz-chat-row-bot">
+          <div class="oz-avatar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--oz-color-primary)" stroke-width="2.5"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 8v4l3 3"/></svg>
+          </div>
+          <div class="oz-bubble oz-bubble-bot oz-animate-slide-up" data-i18n="assistant_welcome_1">
+              Bonjour ! Je suis ton assistant OriZen. <br><br>
+              Je peux t'aider à trouver un <strong>hébergement</strong>, comprendre tes <strong>droits</strong> ou te <strong>protéger</strong>.
+          </div>
+        </div>
+        <div class="oz-chat-row oz-chat-row-bot">
+          <div class="oz-avatar" style="visibility: hidden;"></div>
+          <div class="oz-bubble oz-bubble-bot oz-animate-slide-up" style="animation-delay: 0.1s;" data-i18n="assistant_welcome_2">
+              De quoi as-tu besoin tout de suite ?
+          </div>
+        </div>
+      </div>
+
+      <div class="oz-chat-footer">
+        <div class="oz-chip-group oz-mt-4" style="margin-bottom: 16px; overflow-x: auto; white-space: nowrap; padding-bottom: 8px;">
+            <button class="oz-chip" onclick="window.quickAction('housing')" data-i18n="chip_housing"><img src="img/icons/logement.svg" alt="logement" class="oz-icon" aria-hidden="true"> Hébergement</button>
+            <button class="oz-chip" onclick="window.quickAction('danger')" data-i18n="chip_danger"><img src="img/icons/warning.svg" alt="warning" class="oz-icon" aria-hidden="true"> Danger</button>
+            <button class="oz-chip" onclick="window.quickAction('rights')" data-i18n="chip_rights">📄 Droits</button>
+            <button class="oz-chip" onclick="window.quickAction('nearby')" data-i18n="chip_nearby"><img src="img/icons/location.svg" alt="location" class="oz-icon" aria-hidden="true"> Proche de moi</button>
+            <button class="oz-chip" onclick="window.ORI_APP.navigate('silence')" data-i18n="nav_silence">🤫 Silence</button>
+        </div>
+        <form id="chatForm" class="oz-input-group">
+            <input type="text" id="chatInput" class="oz-chat-input" data-i18n-placeholder="input_placeholder" placeholder="Écris ici..." autocomplete="off">
+            <button type="submit" class="oz-btn oz-btn-primary" style="padding: 8px 16px;">
+                <svg class="oz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            </button>
+        </form>
+      </div>
+    </div>
+
+  <script>
+    function initAssistant() {
+        console.log("<img src="img/icons/chat.svg" alt="chat" class="oz-icon" aria-hidden="true"> Assistant Component Initialized");
+        const thread = document.getElementById('chatThread');
+        const form = document.getElementById('chatForm');
+        const input = document.getElementById('chatInput');
+        const API_URL = "/api/assistant";
+
+        let rawHistory = sessionStorage.getItem('oz_chat_history');
+        let chatHistory = [];
+        try {
+            if (rawHistory) {
+                chatHistory = JSON.parse(decodeURIComponent(atob(rawHistory)));
+            }
+        } catch (e) {
+            chatHistory = JSON.parse(rawHistory || '[]'); // Fallback for legacy plaintext
+        }
+        
+        // Migration of old sessions that used "bot" instead of "assistant"
+        chatHistory = chatHistory.map(msg => msg.role === 'bot' ? { ...msg, role: 'assistant' } : msg);
+
+        // Restore history visually if any
+        if (chatHistory.length > 0) {
+            thread.innerHTML = '';
+            chatHistory.forEach(msg => {
+                appendMessage(msg.content, msg.role === 'user' ? 'user' : 'bot', false);
+            });
+        }
+
+        function appendMessage(text, side, animate = true) {
+            const row = document.createElement('div');
+            row.className = `oz-chat-row oz-chat-row-${side}`;
+
+            if (side === 'bot') {
+                const avatar = document.createElement('div');
+                avatar.className = 'oz-avatar';
+                avatar.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--oz-color-primary)" stroke-width="2.5"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 8v4l3 3"/></svg>`;
+                row.appendChild(avatar);
+            }
+
+            const bubble = document.createElement('div');
+            bubble.className = `oz-bubble oz-bubble-${side} ${animate ? 'oz-animate-slide-up' : ''}`;
+            bubble.innerHTML = text.replace(/\n/g, '<br>');
+            
+            row.appendChild(bubble);
+            thread.appendChild(row);
+            thread.scrollTop = thread.scrollHeight;
+            return row;
+        }
+
+        async function handleAISubmission(msg) {
+            const typingRow = appendMessage('<span class="oz-typing"></span><span class="oz-typing" style="animation-delay: 0.2s"></span><span class="oz-typing" style="animation-delay: 0.4s"></span>', 'bot');
+            
+            try {
+                const body = { 
+                    message: msg,
+                    history: chatHistory,
+                    location: window.ORI_APP.currentState.userLocation
+                };
+
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body)
+                });
+
+                const data = await response.json();
+                typingRow.remove();
+
+                if (data.reply) {
+                    appendMessage(data.reply, 'bot');
+                    chatHistory.push({ role: "user", content: msg });
+                    chatHistory.push({ role: "assistant", content: data.reply });
+                    if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+                    sessionStorage.setItem('oz_chat_history', btoa(encodeURIComponent(JSON.stringify(chatHistory))));
+
+                    if (data.audio) {
+                        const audio = new Audio("data:audio/mp3;base64," + data.audio);
+                        audio.play().catch(e => console.log("Audio autoplay blocked"));
+                    }
+                } else {
+                    appendMessage("Désolé, je rencontre une difficulté technique.", 'bot');
+                    console.error("Backend Error:", data);
+                }
+            } catch (err) {
+                typingBubble.remove();
+                appendMessage("Désolé, je rencontre une difficulté technique.", 'bot');
+            }
+        }
+
+        form.onsubmit = (e) => {
+            e.preventDefault();
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            // --- OFFLINE CHECK ---
+            if (!navigator.onLine) {
+                appendMessage(msg, 'user');
+                input.value = '';
+                setTimeout(() => {
+                    appendMessage("📴 **Mode Hors-ligne activé.**\n\nJe ne peux pas répondre pour le moment car tu n'as pas de connexion internet.\n\nMais tes numéros d'urgence (SOS) et la carte des structures restent accessibles !", 'bot');
+                }, 500);
+                return;
+            }
+
+            appendMessage(msg, 'user');
+            input.value = '';
+            handleAISubmission(msg);
+        };
+
+        window.quickAction = (key) => {
+            const lang = localStorage.getItem('orizen_lang') || 'fr';
+            const val = (window.translations && window.translations[lang] && window.translations[lang][`chip_${key}`]) || key;
+            input.value = val;
+            form.dispatchEvent(new Event('submit'));
+        };
+    }
+
+    // Direct call for standalone testing
+    if (!window.ORI_APP) initAssistant();
+  </script>

@@ -1,0 +1,188 @@
+  <style>
+    #map { height: 100vh; width: 100%; z-index: 1; }
+    .oz-map-overlay { position: absolute; top: 80px; left: 0; right: 0; z-index: 100; pointer-events: none; }
+    .oz-map-controls { pointer-events: auto; margin-inline: var(--oz-space-4); }
+    .oz-card-detail {
+       position: fixed; bottom: 0; left: 0; right: 0;
+       z-index: 1000; background: white; 
+       border-radius: var(--oz-radius-xl) var(--oz-radius-xl) 0 0;
+       padding: var(--oz-space-8) var(--oz-space-6) var(--oz-space-10); 
+       box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+       transform: translateY(100%); transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+       max-width: 600px; margin: 0 auto;
+    }
+    .oz-card-detail.active { transform: translateY(0); }
+    .oz-bottom-sheet-handle {
+      width: 40px; height: 5px; background: #e0e0e0; border-radius: 10px;
+      margin: -15px auto 20px;
+    }
+    .oz-map-backdrop {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.3); z-index: 999; opacity: 0; pointer-events: none;
+      transition: opacity 0.4s ease; backdrop-filter: blur(2px);
+    }
+    .oz-map-backdrop.active { opacity: 1; pointer-events: auto; }
+    
+    /* Adapt markers for night mode */
+    .oz-night-mode .oz-card-detail { background: #1a1a1a; color: white; }
+    .oz-night-mode #detailName { color: white; }
+    .oz-night-mode .oz-bottom-sheet-handle { background: #333; }
+    .oz-marker {
+      background: var(--oz-color-primary); width: 32px; height: 32px; border-radius: 50%;
+      border: 3px solid white; box-shadow: var(--oz-shadow-md); display: flex;
+      align-items: center; justify-content: center; color: white;
+    }
+    .oz-marker-danger { background: var(--oz-color-danger); }
+    .oz-custom-icon { width: 32px !important; height: 32px !important; }
+  </style>
+
+  <div id="map"></div>
+
+  <div class="oz-map-overlay">
+    <div class="oz-map-controls">
+        <div class="oz-flex oz-gap-2 oz-shell" style="overflow-x: auto; padding-bottom: 8px;">
+            <button class="oz-chip active" onclick="filterMap('tous', this)" data-i18n="map_filter_all">Tous</button>
+            <button class="oz-chip" onclick="filterMap('hebergement', this)" data-i18n="map_filter_housing">Hébergement</button>
+            <button class="oz-chip" onclick="filterMap('protection', this)" data-i18n="map_filter_protection">Protection</button>
+            <button class="oz-chip" onclick="filterMap('santé', this)" data-i18n="map_filter_health">Santé</button>
+            <button class="oz-chip" onclick="filterMap('social', this)" data-i18n="map_filter_social">Social</button>
+        </div>
+    </div>
+  </div>
+
+  <div id="mapBackdrop" class="oz-map-backdrop" onclick="closeDrawer()"></div>
+
+  <div id="detailDrawer" class="oz-card-detail oz-drawer">
+    <div class="oz-bottom-sheet-handle"></div>
+    <div class="oz-flex" style="justify-content: space-between; align-items: flex-start;">
+        <div style="flex: 1;">
+            <div class="oz-flex oz-gap-2 oz-center" style="justify-content: flex-start;">
+                <span id="detailType" class="oz-hero__badge" style="font-size: 0.6rem;">TYPE</span>
+                <span id="detailSource" class="oz-hero__badge" style="font-size: 0.5rem; background: var(--oz-color-surface-soft); color: var(--oz-color-text-soft);">SOURCE</span>
+            </div>
+            <h3 id="detailName" class="oz-mt-4" style="font-size: 1.25rem; font-weight: 800; color: var(--oz-color-secondary);">Nom structure</h3>
+            <p id="detailAddr" style="color: var(--oz-color-text-soft); font-size: 0.85rem; margin-top: 4px;">Adresse...</p>
+            <div id="detailExtra" style="margin-top: 8px;">
+                <p id="detailHours" style="color: var(--oz-color-primary); font-size: 0.8rem; font-weight: 600;">🕒 Horaires...</p>
+                <p id="detailAccess" style="color: var(--oz-color-success); font-size: 0.75rem; font-weight: 500; display: none;">♿ Accessible</p>
+            </div>
+        </div>
+        <button onclick="closeDrawer()" style="background: var(--oz-color-surface); border: none; padding: 12px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; color: var(--oz-color-text);">✕</button>
+    </div>
+    
+    <div class="oz-flex oz-gap-4 oz-mt-6">
+        <a id="detailCall" href="#" class="oz-btn oz-btn-primary oz-flex-1 oz-center" style="gap: 8px;">
+            <svg class="oz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <span data-i18n="map_drawer_call">Appeler</span>
+        </a>
+        <a id="detailNav" href="#" target="_blank" class="oz-btn oz-btn-outline oz-flex-1 oz-center" style="gap: 8px;">
+            <svg class="oz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+            <span data-i18n="map_drawer_nav">Itinéraire</span>
+        </a>
+    </div>
+  </div>
+
+  <script>
+    function initMap() {
+        console.log("🗺️ Map Component Initialized — Multi-source Mode");
+        let map;
+        let markers = [];
+        let structures = [];
+
+        async function start() {
+            if (window.L === undefined) {
+                console.warn("Leaflet not loaded yet, retrying...");
+                setTimeout(start, 500);
+                return;
+            }
+
+            map = L.map('map', { zoomControl: false }).setView([48.8566, 2.3522], 13);
+            const lightTiles = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+            const darkTiles = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+            
+            const isNight = document.documentElement.classList.contains('oz-night-mode');
+            const tileLayer = L.tileLayer(isNight ? darkTiles : lightTiles).addTo(map);
+            
+            window.addEventListener('oz-theme-change', (e) => {
+                tileLayer.setUrl(e.detail.isNight ? darkTiles : lightTiles);
+            });
+            
+            if (window.ORI_APP && window.ORI_APP.currentState.userLocation) {
+                const { lat, lng } = window.ORI_APP.currentState.userLocation;
+                map.setView([lat, lng], 14);
+                L.circle([lat, lng], { radius: 100, color: 'var(--oz-color-primary)', fillOpacity: 0.1, weight: 1 }).addTo(map);
+                sync(lat, lng);
+            } else {
+                map.locate({setView: true, maxZoom: 15});
+            }
+
+            map.on('locationfound', e => sync(e.latlng.lat, e.latlng.lng));
+        }
+
+        async function sync(lat, lng) {
+            try {
+                const res = await fetch(`/api/structures?lat=${lat}&lng=${lng}&limit=40`);
+                const data = await res.json();
+                if (data.ok && data.structures) {
+                    structures = data.structures;
+                    renderMarkers('tous');
+                }
+            } catch (err) {
+                console.error("Map Sync Error:", err);
+            }
+        }
+
+        window.renderMarkers = (filter) => {
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+            structures.forEach(s => {
+                if (filter !== 'tous' && s.type !== filter) return;
+                const icon = L.divIcon({
+                    className: 'oz-custom-icon',
+                    html: `<div class="oz-marker ${s.type === 'protection' ? 'oz-marker-danger' : ''}" style="${s.source === 'osm' ? 'opacity: 0.8' : ''}">
+                            <svg class="oz-icon" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/></svg>
+                           </div>`
+                });
+                const m = L.marker([s.lat, s.lng], { icon: icon }).addTo(map);
+                m.on('click', () => openDrawer(s));
+                markers.push(m);
+            });
+        };
+
+        window.openDrawer = (s) => {
+            document.getElementById('detailType').innerText = (s.type || 'Aide').toUpperCase();
+            document.getElementById('detailSource').innerText = (s.source || 'Local').toUpperCase();
+            document.getElementById('detailName').innerText = s.name;
+            document.getElementById('detailAddr').innerText = s.addr || s.address;
+            document.getElementById('detailHours').innerText = `🕒 ${s.hours || 'Horaires non spécifiés'}`;
+            
+            const access = document.getElementById('detailAccess');
+            if (s.accessibility && s.accessibility !== 'N/A') {
+                access.innerText = `♿ ${s.accessibility}`;
+                access.style.display = 'block';
+            } else {
+                access.style.display = 'none';
+            }
+
+            document.getElementById('detailCall').href = `tel:${s.tel || s.phone}`;
+            document.getElementById('detailNav').href = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`;
+            document.getElementById('detailDrawer').classList.add('active');
+            document.getElementById('mapBackdrop').classList.add('active');
+        };
+
+        window.closeDrawer = () => {
+            document.getElementById('detailDrawer').classList.remove('active');
+            document.getElementById('mapBackdrop').classList.remove('active');
+        };
+        
+        window.filterMap = (type, btn) => {
+            renderMarkers(type); closeDrawer();
+            document.querySelectorAll('.oz-chip').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+        };
+
+        start();
+    }
+
+    if (!window.ORI_APP) initMap();
+  </script>

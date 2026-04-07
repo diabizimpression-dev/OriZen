@@ -1,0 +1,426 @@
+/* ===============================
+   OriZen – foundation.css (v1)
+   ADN visuel global de la plateforme
+   =============================== */
+
+/* 1. RESET LÉGER + BASE HTML
+   (tu peux compléter avec un vrai reset.css à part si tu veux)
+*/
+
+:root {
+  /* TYPOGRAPHIE */
+  --oz-font-sans: "Inter", "system-ui", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --oz-font-header: "DM Sans", "Inter", sans-serif;
+  --oz-font-mono: "ui-monospace", "SF Mono", Menlo, Monaco, Consolas, monospace;
+
+  /* TAILLE DE TEXTE (SCALE) */
+  --oz-font-size-xs: 0.75rem;   /* 12px */
+  --oz-font-size-sm: 0.875rem;  /* 14px */
+  --oz-font-size-md: 1rem;      /* 16px */
+  --oz-font-size-lg: 1.125rem;  /* 18px */
+  --oz-font-size-xl: 1.25rem;   /* 20px */
+  --oz-font-size-2xl: 1.5rem;   /* 24px */
+  --oz-font-size-3xl: 1.875rem; /* 30px */
+  --oz-font-size-4xl: 2.25rem;  /* 36px */
+
+  /* INTERLIGNES */
+  --oz-line-height-tight: 1.2;
+  --oz-line-height-normal: 1.5;
+  --oz-line-height-relaxed: 1.7;
+
+  /* PALETTE COULEURS (PRÉMIUM - VIOLET PROFOND) */
+  --oz-color-bg: #F8F9FB;              /* Fond clair par défaut */
+  --oz-color-bg-elevated: #FFFFFF;     /* Cartes, sections blanches */
+  --oz-color-bg-soft: #F1F5F9;         /* Gris très doux */
+
+  --oz-color-primary: #6B4EFF;         /* Violet Profond (Action Principale) */
+  --oz-color-primary-soft: #5A3DE0;
+  --oz-color-primary-subtle: rgba(107, 78, 255, 0.1);
+
+  --oz-color-secondary: #4F8CFF;       /* Bleu Doux (Infos secondaires) */
+  --oz-color-secondary-subtle: rgba(79, 140, 255, 0.1);
+
+  --oz-color-accent: #22C55E;          /* Vert espoir */
+  --oz-color-accent-soft: rgba(34, 197, 94, 0.1);
+
+  --oz-color-border-subtle: #E2E8F0;
+  --oz-color-border-strong: #CBD5E1;
+
+  --oz-color-text: #1F2937;            /* Texte Gris Foncé (Lisible) */
+  --oz-color-text-muted: #64748B;
+  --oz-color-text-soft: #94A3B8;
+  --oz-color-link: #6B4EFF;
+  --oz-color-link-hover: #4F8CFF;
+
+  /* ÉTATS */
+  --oz-color-success: #10B981;
+  --oz-color-success-soft: rgba(16, 185, 129, 0.12);
+  --oz-color-danger: #FF5A5A;          /* Rouge Doux (Alerte) */
+  --oz-color-danger-soft: rgba(255, 90, 90, 0.12);
+  --oz-color-warning: #F59E0B;
+  --oz-color-warning-soft: rgba(245, 158, 11, 0.12);
+  --oz-color-info: #4F8CFF;
+  --oz-color-info-soft: rgba(79, 140, 255, 0.12);
+
+  /* RAYONS (BORDERS RADIUS) */
+  --oz-radius-sm: 0.375rem;  /* 6px */
+  --oz-radius-md: 0.75rem;   /* 12px */
+  --oz-radius-lg: 1.25rem;   /* 20px */
+  --oz-radius-xl: 1.75rem;   /* 28px */
+  --oz-radius-pill: 999px;   /* pour les badges / chips */
+
+  /* OMBRES (PREMIUM - STRIPE/LINEAR STYLE) */
+  --oz-shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --oz-shadow-subtle: 0 2px 4px rgba(0, 0, 0, 0.02);
+  --oz-shadow-focus: 0 0 0 3px rgba(107, 78, 255, 0.3);
+
+  /* ESPACEMENTS (SCALE) */
+  --oz-space-0: 0;
+  --oz-space-1: 0.25rem; /* 4px */
+  --oz-space-2: 0.5rem;  /* 8px */
+  --oz-space-3: 0.75rem; /* 12px */
+  --oz-space-4: 1rem;    /* 16px */
+  --oz-space-5: 1.25rem; /* 20px */
+  --oz-space-6: 1.5rem;  /* 24px */
+  --oz-space-8: 2rem;    /* 32px */
+  --oz-space-10: 2.5rem; /* 40px */
+  --oz-space-12: 3rem;   /* 48px */
+  --oz-space-16: 4rem;   /* 64px */
+
+  /* LARGEURS & BREAKPOINTS */
+  --oz-page-max-width: 1120px;
+  --oz-page-max-width-wide: 1280px;
+
+  --oz-breakpoint-sm: 480px;
+  --oz-breakpoint-md: 768px;
+  --oz-breakpoint-lg: 1024px;
+  --oz-breakpoint-xl: 1280px;
+
+  /* TRANSITIONS & ANIMATIONS */
+  --oz-transition-fast: 120ms ease-out;
+  --oz-transition-normal: 180ms ease-out;
+  --oz-transition-slow: 240ms ease-out;
+
+  /* Z-INDEX */
+  --oz-z-nav: 20;
+  --oz-z-modal: 40;
+  --oz-z-toast: 50;
+}
+
+/* Mode "réduction des mouvements" pour éviter les animations agressives */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --oz-transition-fast: 0ms;
+    --oz-transition-normal: 0ms;
+    --oz-transition-slow: 0ms;
+  }
+}
+
+/* BASE HTML */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--oz-font-sans);
+  font-size: var(--oz-font-size-md);
+  line-height: var(--oz-line-height-normal);
+  color: var(--oz-color-text);
+  background-color: var(--oz-color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* SCROLLBAR (optionnel, discret) */
+body::-webkit-scrollbar {
+  width: 8px;
+}
+body::-webkit-scrollbar-track {
+  background: #020617;
+}
+body::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: var(--oz-radius-pill);
+}
+
+/* TYPOGRAPHIE GLOBAL */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0 0 var(--oz-space-3);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--oz-color-text);
+}
+
+h1 {
+  font-size: clamp(2rem, 4vw, var(--oz-font-size-4xl));
+  line-height: var(--oz-line-height-tight);
+}
+
+h2 {
+  font-size: clamp(1.75rem, 3vw, var(--oz-font-size-3xl));
+}
+
+h3 {
+  font-size: var(--oz-font-size-2xl);
+}
+
+p {
+  margin: 0 0 var(--oz-space-3);
+  color: var(--oz-color-text-soft);
+}
+
+small {
+  font-size: var(--oz-font-size-xs);
+  color: var(--oz-color-text-muted);
+}
+
+/* LIENS */
+a {
+  color: var(--oz-color-link);
+  text-decoration: none;
+  transition: color var(--oz-transition-fast);
+}
+a:hover {
+  color: var(--oz-color-link-hover);
+  text-decoration: underline;
+}
+a:focus-visible {
+  outline: none;
+  box-shadow: var(--oz-shadow-focus);
+  border-radius: var(--oz-radius-sm);
+}
+
+/* LISTES */
+ul, ol {
+  margin: 0 0 var(--oz-space-3);
+  padding-left: var(--oz-space-5);
+}
+
+/* FORMULAIRES – BASE */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* IMAGES */
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* ============ LAYOUT GÉNÉRIQUE ============ */
+
+/* Shell = conteneur central de toutes les pages */
+.oz-shell {
+  width: min(var(--oz-page-max-width), 100% - 2rem);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Variantes larges */
+.oz-shell--wide {
+  width: min(var(--oz-page-max-width-wide), 100% - 2rem);
+}
+
+/* Page = wrapper principal d’écran */
+.oz-page {
+  padding-top: var(--oz-space-6);
+  padding-bottom: var(--oz-space-8);
+}
+
+/* Section standard */
+.oz-section {
+  padding-block: var(--oz-space-6);
+}
+
+/* Section avec bordure subtile */
+.oz-section--elevated {
+  padding: var(--oz-space-6);
+  border-radius: var(--oz-radius-lg);
+  background: linear-gradient(145deg, #020617 0%, #020617 60%, #020617 100%);
+  border: 1px solid var(--oz-color-border-subtle);
+  box-shadow: var(--oz-shadow-soft);
+}
+
+/* Stack vertical (pour enchaîner des blocs) */
+.oz-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--oz-space-3);
+}
+
+/* Stack plus large */
+.oz-stack-lg {
+  gap: var(--oz-space-5);
+}
+
+/* Flex helpers */
+.oz-flex {
+  display: flex;
+}
+.oz-flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.oz-flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Grille responsive de base */
+.oz-grid {
+  display: grid;
+  gap: var(--oz-space-4);
+}
+
+@media (min-width: 768px) {
+  .oz-grid-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .oz-grid-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ============ COMPOSANTS DE BASE (SKELETON) ============ */
+
+/* CARTES GÉNÉRIQUES (pour réutiliser partout) */
+.oz-card {
+  border-radius: var(--oz-radius-lg);
+  background: radial-gradient(circle at top left, #0b1120 0, #020617 45%, #020617 100%);
+  border: 1px solid var(--oz-color-border-subtle);
+  padding: var(--oz-space-4);
+  box-shadow: var(--oz-shadow-subtle);
+}
+
+.oz-card--soft {
+  background: #020617;
+  border-color: rgba(148, 163, 184, 0.15);
+}
+
+/* BADGE */
+.oz-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--oz-radius-pill);
+  font-size: var(--oz-font-size-xs);
+  font-weight: 500;
+  background: rgba(15, 23, 42, 0.85);
+  color: var(--oz-color-text-muted);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+/* TITRES DE SECTION */
+.oz-section-title {
+  font-size: var(--oz-font-size-2xl);
+  margin-bottom: var(--oz-space-2);
+}
+
+.oz-section-subtitle {
+  font-size: var(--oz-font-size-md);
+  color: var(--oz-color-text-soft);
+  margin-bottom: var(--oz-space-4);
+}
+
+/* CHIPS (ex : “Mineur”, “18–21 ans”) */
+.oz-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.7rem;
+  border-radius: var(--oz-radius-pill);
+  font-size: var(--oz-font-size-xs);
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid var(--oz-color-border-subtle);
+  color: var(--oz-color-text-muted);
+}
+
+/* ============ ÉTATS & ACCESSIBILITÉ ============ */
+
+/* Focus visible générique pour tous les éléments focusables */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--oz-shadow-focus);
+}
+
+/* Helpers de statut */
+.oz-text-danger {
+  color: var(--oz-color-danger);
+}
+.oz-text-success {
+  color: var(--oz-color-success);
+}
+.oz-text-muted {
+  color: var(--oz-color-text-muted);
+}
+
+/* Espacements utilitaires */
+.oz-mt-4 { margin-top: var(--oz-space-4); }
+.oz-mb-4 { margin-bottom: var(--oz-space-4); }
+.oz-mt-6 { margin-top: var(--oz-space-6); }
+.oz-mb-6 { margin-bottom: var(--oz-space-6); }
+
+/* Alignement du contenu principal (ex : pour les pages “arme nationale”) */
+.oz-main {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.oz-main__content {
+  flex: 1 1 auto;
+}
+
+/* FOOTER sobre */
+.oz-footer {
+  border-top: 1px solid var(--oz-color-border-subtle);
+  padding-block: var(--oz-space-4);
+  font-size: var(--oz-font-size-sm);
+  color: var(--oz-color-text-muted);
+}
+/* ===========================
+   Helpers supplémentaires
+   =========================== */
+
+.oz-gap-sm {
+  display: inline-flex;
+  gap: var(--oz-space-2);
+}
+
+.oz-mt-1 { margin-top: var(--oz-space-1); }
+.oz-mt-2 { margin-top: var(--oz-space-2); }
+.oz-mt-3 { margin-top: var(--oz-space-3); }
+
+/* Petit texte */
+.oz-small-text {
+  font-size: var(--oz-font-size-sm);
+  color: var(--oz-color-text-soft);
+}
+
+/* Icons (SVG injectés) */
+.oz-icon {
+  width: 1.25em;
+  height: 1.25em;
+  vertical-align: middle;
+  fill: currentColor;
+  display: inline-block;
+  margin-top: -0.125em;
+}
+

@@ -1,0 +1,87 @@
+/* =============================================================
+   DESIGN SYSTEM 21 - "Neo-Digital" Aesthetic (OriZen)
+   Inspired by 21st.dev, Linear, and Modern SaaS.
+   ============================================================= */
+
+:root {
+    /* 1. COLORS (HSL for precision) */
+    --c21-bg: #020617;
+    --c21-bg-soft: #0b1120;
+    --c21-surface: rgba(15, 23, 42, 0.6);
+    --c21-border: rgba(51, 65, 85, 0.5);
+    --c21-border-bright: rgba(148, 163, 184, 0.2);
+    
+    --c21-primary: #6366f1; /* Indigo */
+    --c21-primary-glow: rgba(99, 102, 241, 0.15);
+    --c21-accent: #f97316; /* Orange CTA */
+    --c21-danger: #ef4444;
+    
+    --c21-text: #f8fafc;
+    --c21-text-muted: #94a3b8;
+    --c21-text-soft: #64748b;
+
+    /* 2. TYPOGRAPHY */
+    --c21-font-heading: 'Space Grotesk', sans-serif;
+    --c21-font-body: 'Inter', sans-serif;
+
+    /* 3. SHADOWS & BLUR */
+    --c21-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --c21-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --c21-shadow-glow: 0 0 20px var(--c21-primary-glow);
+    --c21-glass-blur: 12px;
+}
+
+/* --- UTILITIES --- */
+
+.c21-glass {
+    background: var(--c21-surface);
+    backdrop-filter: blur(var(--c21-glass-blur));
+    -webkit-backdrop-filter: blur(var(--c21-glass-blur));
+    border: 1px solid var(--c21-border);
+}
+
+.c21-card {
+    border-radius: 16px;
+    padding: 24px;
+    background: radial-gradient(circle at top left, rgba(255,255,255,0.03) 0%, transparent 60%);
+    border: 1px solid var(--c21-border);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.c21-card:hover {
+    border-color: var(--c21-border-bright);
+    transform: translateY(-2px);
+    box-shadow: var(--c21-shadow-glow);
+}
+
+.c21-btn-primary {
+    background: var(--c21-primary);
+    color: white;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.c21-btn-primary:active {
+    transform: scale(0.98);
+}
+
+.c21-text-gradient {
+    background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.c21-pill {
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--c21-text-muted);
+}

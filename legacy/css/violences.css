@@ -1,0 +1,153 @@
+/* violences.css */
+
+/* Conteneur de sécurité Header */
+.oz-safety-header {
+  border-bottom: 3px solid var(--oz-color-danger);
+  padding: 1.5rem;
+  background: var(--oz-color-bg-elevated);
+  margin-bottom: 2rem;
+  animation: slideInDown 0.4s ease-out;
+}
+
+.oz-safety-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.oz-safety-title {
+  color: var(--oz-color-danger);
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.oz-safety-msg {
+  flex: 1;
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--oz-color-text-soft);
+}
+
+/* Grille des types de violences */
+.oz-violences-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.oz-violence-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
+}
+
+.oz-violence-card:hover, .oz-violence-card.active {
+  border-color: var(--oz-color-primary);
+  transform: translateY(-5px);
+  background: var(--oz-color-primary-subtle);
+}
+
+.oz-violence-card .oz-icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 1rem;
+  color: var(--oz-color-primary);
+}
+
+/* Mode Discret */
+body.mode-discret {
+  background: white !important;
+  color: #333 !important;
+}
+
+body.mode-discret * {
+  border-color: #ddd !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+body.mode-discret .oz-header, 
+body.mode-discret .oz-footer,
+body.mode-discret .oz-quick-exit,
+body.mode-discret .oz-floating-assistant {
+  display: none !important;
+}
+
+body.mode-discret .oz-main {
+  background: white !important;
+  color: #333 !important;
+  padding-top: 2rem;
+}
+
+body.mode-discret .oz-card,
+body.mode-discret .oz-section--elevated {
+  background: #f9f9f9 !important;
+  border: 1px solid #ccc !important;
+  color: #333 !important;
+}
+
+body.mode-discret .oz-icon {
+  filter: grayscale(100%);
+  opacity: 0.5;
+}
+
+/* Changement de texte via JS ou classes pour la discrétion */
+body.mode-discret .discret-hidden {
+  display: none !important;
+}
+
+body.mode-discret .discret-only {
+  display: block !important;
+}
+
+.discret-only {
+  display: none;
+}
+
+/* Bouton bascule mode discret */
+.oz-btn-discret {
+  position: fixed;
+  top: 90px;
+  right: 24px;
+  z-index: 1001;
+  background: var(--oz-color-bg-elevated);
+  border: 1px solid var(--oz-color-border-strong);
+  color: var(--oz-color-text-soft);
+  padding: 8px 16px;
+  border-radius: var(--oz-radius-pill);
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.oz-btn-discret:hover {
+  background: var(--oz-color-primary-subtle);
+  color: var(--oz-color-primary);
+}
+
+/* Utilitaires GPS */
+.oz-gps-box {
+  background: var(--oz-color-bg-soft);
+  padding: 1rem;
+  border-radius: var(--oz-radius-md);
+  margin-top: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.oz-gps-coords {
+  font-family: var(--oz-font-mono);
+  font-size: 0.85rem;
+  color: var(--oz-color-primary);
+}
+
+@keyframes slideInDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
