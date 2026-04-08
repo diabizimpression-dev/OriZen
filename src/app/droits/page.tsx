@@ -6,7 +6,7 @@ import {
   ArrowLeft, ChevronDown, Phone, Home, Utensils,
   HeartPulse, AlertTriangle, FileText, Baby, ShieldAlert,
   Wallet, BookOpen, Scale, ExternalLink, Loader2, Send,
-  Sparkles,
+  Sparkles, Users, Mail, Globe,
 } from "lucide-react";
 import { SCENARIO_LIST } from "@/lib/scenarios";
 
@@ -46,6 +46,16 @@ interface GenialAnswer {
   loading: boolean;
 }
 
+interface AssocData {
+  associations: Array<{
+    id: string; name: string; objet: string; address: string;
+    phone: string | null; email: string | null; website: string | null;
+    distance_m: number | null;
+  }>;
+  loading: boolean;
+  loaded: boolean;
+}
+
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
 const ICONS: Record<string, React.ElementType> = {
@@ -66,7 +76,19 @@ export default function DroitsPage() {
   const [legalData, setLegalData] = useState<Record<string, LegalData>>({});
   const [genialAnswers, setGenialAnswers] = useState<Record<string, GenialAnswer>>({});
   const [genialQuestions, setGenialQuestions] = useState<Record<string, string>>({});
+  const [assocData, setAssocData] = useState<Record<string, AssocData>>({});
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Géolocalisation silencieuse pour les associations
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (p) => setUserCoords({ lat: p.coords.latitude, lng: p.coords.longitude }),
+      () => {},
+      { timeout: 5000, maximumAge: 300000 }
+    );
+  }, []);
 
   const fetchLegalData = useCallback(async (scenarioId: string) => {
     // Déjà chargé ou en cours
@@ -116,12 +138,40 @@ export default function DroitsPage() {
     }
   }, [legalData]);
 
+  const fetchAssocData = useCallback(async (scenarioId: string) => {
+    if (assocData[scenarioId]?.loaded || assocData[scenarioId]?.loading) return;
+    const coords = userCoords;
+    if (!coords) return;
+
+    setAssocData((prev) => ({
+      ...prev,
+      [scenarioId]: { associations: [], loading: true, loaded: false },
+    }));
+
+    try {
+      const res = await fetch(
+        `/api/associations?lat=${coords.lat}&lng=${coords.lng}&scenario=${scenarioId}&radius=5000`
+      );
+      const data = await res.json();
+      setAssocData((prev) => ({
+        ...prev,
+        [scenarioId]: { associations: data.associations ?? [], loading: false, loaded: true },
+      }));
+    } catch {
+      setAssocData((prev) => ({
+        ...prev,
+        [scenarioId]: { associations: [], loading: false, loaded: true },
+      }));
+    }
+  }, [assocData, userCoords]);
+
   const toggle = (id: string) => {
     if (openId === id) {
       setOpenId(null);
     } else {
       setOpenId(id);
       fetchLegalData(id);
+      fetchAssocData(id);
     }
   };
 
@@ -514,6 +564,66 @@ export default function DroitsPage() {
                           )}
                         </AnimatePresence>
                       </div>
+
+                      {/* ── RNA — Associations locales ── */}
+                      {userCoords && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Users size={13} className="text-emerald-400" />
+                            <h3 className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                              Associations locales
+                            </h3>
+                            <span className="ml-auto text-xs text-slate-600">RNA · data.gouv.fr</span>
+                          </div>
+
+                          {assocData[scenario.id]?.loading ? (
+                            <div className="flex items-center gap-2 py-3 px-3 rounded-xl bg-slate-900/60 border border-slate-800">
+                              <Loader2 size={14} className="text-slate-500 animate-spin" />
+                              <span className="text-xs text-slate-500">Recherche associations…</span>
+                            </div>
+                          ) : assocData[scenario.id]?.loaded && assocData[scenario.id].associations.length > 0 ? (
+                            <div className="flex flex-col gap-2">
+                              {assocData[scenario.id].associations.slice(0, 4).map((a) => (
+                                <div key={a.id} className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-800/30">
+                                  <p className="text-xs font-semibold text-slate-200 leading-tight">{a.name}</p>
+                                  {a.objet && (
+                                    <p className="text-xs text-slate-500 mt-0.5 leading-relaxed line-clamp-2">{a.objet}</p>
+                                  )}
+                                  {a.address && (
+                                    <p className="text-xs text-slate-600 mt-1">{a.address}</p>
+                                  )}
+                                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                    {a.distance_m != null && (
+                                      <span className="text-xs text-emerald-500">
+                                        {a.distance_m < 1000 ? `${a.distance_m} m` : `${(a.distance_m / 1000).toFixed(1)} km`}
+                                      </span>
+                                    )}
+                                    {a.phone && (
+                                      <a href={`tel:${a.phone.replace(/\s/g, "")}`} className="flex items-center gap-1 text-xs text-slate-400 hover:text-white">
+                                        <Phone size={9} /> {a.phone}
+                                      </a>
+                                    )}
+                                    {a.email && (
+                                      <a href={`mailto:${a.email}`} className="flex items-center gap-1 text-xs text-slate-400 hover:text-white">
+                                        <Mail size={9} /> Email
+                                      </a>
+                                    )}
+                                    {a.website && (
+                                      <a href={a.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-slate-400 hover:text-white">
+                                        <Globe size={9} /> Site
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : assocData[scenario.id]?.loaded ? (
+                            <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-800 text-xs text-slate-500">
+                              Aucune association trouvée dans ce rayon.
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
 
                       {/* Documents */}
                       {scenario.documents.length > 0 && (
