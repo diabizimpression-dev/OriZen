@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, ChevronDown, Phone, Home, Utensils,
   HeartPulse, AlertTriangle, FileText, Baby, ShieldAlert,
-  Wallet, BookOpen, Scale, ExternalLink, Loader2,
+  Wallet, BookOpen, Scale, ExternalLink, Loader2, Send,
+  Sparkles,
 } from "lucide-react";
 import { SCENARIO_LIST } from "@/lib/scenarios";
 
@@ -39,6 +40,12 @@ interface LegalData {
   configured: boolean;
 }
 
+interface GenialAnswer {
+  answer: string;
+  source: "genial" | "groq" | "none";
+  loading: boolean;
+}
+
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
 const ICONS: Record<string, React.ElementType> = {
@@ -57,6 +64,9 @@ const ICONS: Record<string, React.ElementType> = {
 export default function DroitsPage() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [legalData, setLegalData] = useState<Record<string, LegalData>>({});
+  const [genialAnswers, setGenialAnswers] = useState<Record<string, GenialAnswer>>({});
+  const [genialQuestions, setGenialQuestions] = useState<Record<string, string>>({});
+  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const fetchLegalData = useCallback(async (scenarioId: string) => {
     // Déjà chargé ou en cours
@@ -114,6 +124,38 @@ export default function DroitsPage() {
       fetchLegalData(id);
     }
   };
+
+  const askGenial = useCallback(async (scenarioId: string) => {
+    const question = genialQuestions[scenarioId]?.trim();
+    if (!question) return;
+
+    setGenialAnswers((prev) => ({
+      ...prev,
+      [scenarioId]: { answer: "", source: "groq", loading: true },
+    }));
+
+    try {
+      const res = await fetch("/api/genial", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, scenario: scenarioId }),
+      });
+      const data = await res.json();
+      setGenialAnswers((prev) => ({
+        ...prev,
+        [scenarioId]: {
+          answer: data.answer ?? "",
+          source: data.source ?? "groq",
+          loading: false,
+        },
+      }));
+    } catch {
+      setGenialAnswers((prev) => ({
+        ...prev,
+        [scenarioId]: { answer: "Erreur de connexion.", source: "none", loading: false },
+      }));
+    }
+  }, [genialQuestions]);
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -395,6 +437,82 @@ export default function DroitsPage() {
                             </div>
                           ) : null
                         )}
+                      </div>
+
+                      {/* ── GENIAL — Assistant juridique IA ── */}
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Sparkles size={13} className="text-violet-400" />
+                          <h3 className="text-xs font-semibold text-violet-400 uppercase tracking-wider">
+                            Question juridique IA
+                          </h3>
+                          <span className="ml-auto text-xs text-slate-600">
+                            {genialAnswers[scenario.id]?.source === "genial"
+                              ? "GenIA-L · Lefebvre"
+                              : "OriZen IA"}
+                          </span>
+                        </div>
+
+                        {/* Input question */}
+                        <div className="flex gap-2 mb-2">
+                          <input
+                            ref={(el) => { inputRefs.current[scenario.id] = el; }}
+                            type="text"
+                            value={genialQuestions[scenario.id] ?? ""}
+                            onChange={(e) =>
+                              setGenialQuestions((prev) => ({
+                                ...prev,
+                                [scenario.id]: e.target.value,
+                              }))
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") askGenial(scenario.id);
+                            }}
+                            placeholder="Posez votre question juridique…"
+                            className="flex-1 px-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-600 focus:outline-none focus:border-violet-600 transition-colors"
+                          />
+                          <button
+                            onClick={() => askGenial(scenario.id)}
+                            disabled={
+                              !genialQuestions[scenario.id]?.trim() ||
+                              genialAnswers[scenario.id]?.loading
+                            }
+                            className="p-2 rounded-xl bg-violet-700 hover:bg-violet-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {genialAnswers[scenario.id]?.loading ? (
+                              <Loader2 size={14} className="text-white animate-spin" />
+                            ) : (
+                              <Send size={14} className="text-white" />
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Réponse IA */}
+                        <AnimatePresence>
+                          {genialAnswers[scenario.id]?.answer && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0 }}
+                              className="p-3 rounded-xl bg-violet-950/40 border border-violet-800/40"
+                            >
+                              <div className="flex items-center gap-1.5 mb-1.5">
+                                <Sparkles size={10} className="text-violet-400" />
+                                <span className="text-xs font-semibold text-violet-400">
+                                  {genialAnswers[scenario.id]?.source === "genial"
+                                    ? "GenIA-L (Lefebvre Dalloz)"
+                                    : "OriZen IA (Groq)"}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
+                                {genialAnswers[scenario.id].answer}
+                              </p>
+                              <p className="text-xs text-slate-600 mt-2">
+                                Vérifiez toujours sur legifrance.gouv.fr · Consultez un juriste pour des cas complexes
+                              </p>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
 
                       {/* Documents */}
