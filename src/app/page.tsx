@@ -1,530 +1,171 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from "framer-motion";
-import {
-  Home,
-  Utensils,
-  HeartPulse,
-  MessageCircle,
-  ArrowUpRight,
-  Clock,
-  Phone,
-  X,
-  Zap,
-} from "lucide-react";
-
-/* ─────────────────────────────────────────────────────────────────────────
-   DATA
-───────────────────────────────────────────────────────────────────────── */
+import { motion, AnimatePresence } from "framer-motion";
 
 const ACTIONS = [
-  {
-    id: "logement",
-    label: "Dormir",
-    sublabel: "Hébergement d'urgence",
-    tag: "Disponible 24h/24",
-    icon: Home,
-    color: "#6366F1",
-    colorRgb: "99,102,241",
-    href: "/carte?besoin=logement",
-    number: "115",
-  },
-  {
-    id: "manger",
-    label: "Manger",
-    sublabel: "Distribution alimentaire",
-    tag: "Gratuit & sans conditions",
-    icon: Utensils,
-    color: "#10B981",
-    colorRgb: "16,185,129",
-    href: "/carte?besoin=alimentation",
-    number: "115",
-  },
-  {
-    id: "soin",
-    label: "Se soigner",
-    sublabel: "Soins gratuits (PASS)",
-    tag: "Accès sans papiers",
-    icon: HeartPulse,
-    color: "#F59E0B",
-    colorRgb: "245,158,11",
-    href: "/carte?besoin=sante",
-    number: "15",
-  },
-  {
-    id: "parler",
-    label: "Parler",
-    sublabel: "Aide & conseils",
-    tag: "IA + annuaire",
-    icon: MessageCircle,
-    color: "#8B5CF6",
-    colorRgb: "139,92,246",
-    href: "/assistant",
-    number: null,
-  },
+  { id: "logement", label: "Dormir", sub: "Hébergement d'urgence", tag: "24h/24", color: "#6366F1", rgb: "99,102,241", href: "/carte?besoin=logement", icon: "🏠" },
+  { id: "manger",   label: "Manger", sub: "Distribution alimentaire", tag: "Gratuit", color: "#10B981", rgb: "16,185,129", href: "/carte?besoin=alimentation", icon: "🍽️" },
+  { id: "soin",     label: "Se soigner", sub: "Soins gratuits PASS", tag: "Sans papiers", color: "#F59E0B", rgb: "245,158,11", href: "/carte?besoin=sante", icon: "💊" },
+  { id: "parler",   label: "Parler", sub: "Aide & conseils", tag: "IA + annuaire", color: "#8B5CF6", rgb: "139,92,246", href: "/assistant", icon: "💬" },
 ] as const;
 
-const SOS_NUMBERS = [
-  { label: "SAMU Social", number: "115", desc: "Hébergement d'urgence", color: "#EF4444" },
-  { label: "Police", number: "17", desc: "Danger, agression", color: "#F97316" },
-  { label: "Violences", number: "3919", desc: "Violences conjugales", color: "#EC4899" },
-  { label: "SAMU", number: "15", desc: "Urgence médicale", color: "#EF4444" },
+const SOS = [
+  { label: "SAMU Social", n: "115", desc: "Hébergement urgent", c: "#EF4444" },
+  { label: "Police", n: "17", desc: "Danger, agression", c: "#F97316" },
+  { label: "Violences", n: "3919", desc: "Violences conjugales", c: "#EC4899" },
+  { label: "SAMU", n: "15", desc: "Urgence médicale", c: "#EF4444" },
 ];
 
-/* ─────────────────────────────────────────────────────────────────────────
-   ANIMATION VARIANTS
-───────────────────────────────────────────────────────────────────────── */
+export default function Home() {
+  const [sos, setSos] = useState(false);
+  const [last, setLast] = useState<string | null>(null);
+  const [active, setActive] = useState<string | null>(null);
 
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: { staggerChildren: 0.09, delayChildren: 0.1 },
-  },
-};
+  useEffect(() => { setLast(localStorage.getItem("orizen_last")); }, []);
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 24, filter: "blur(4px)" },
-  visible: {
-    opacity: 1,
-    y: 0,
-    filter: "blur(0px)",
-    transition: { duration: 0.55, ease: [0.23, 1, 0.32, 1] },
-  },
-};
-
-const heroVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.7, ease: [0.23, 1, 0.32, 1] },
-  },
-};
-
-/* ─────────────────────────────────────────────────────────────────────────
-   TILT CARD COMPONENT
-───────────────────────────────────────────────────────────────────────── */
-
-function TiltCard({
-  children,
-  className,
-  style,
-  onClick,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-  onClick?: () => void;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const rotateX = useTransform(y, [-0.5, 0.5], [4, -4]);
-  const rotateY = useTransform(x, [-0.5, 0.5], [-4, 4]);
-  const springX = useSpring(rotateX, { stiffness: 200, damping: 20 });
-  const springY = useSpring(rotateY, { stiffness: 200, damping: 20 });
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    x.set((e.clientX - rect.left) / rect.width - 0.5);
-    y.set((e.clientY - rect.top) / rect.height - 0.5);
+  const go = (id: string, href: string) => {
+    setActive(id);
+    localStorage.setItem("orizen_last", id);
+    setTimeout(() => { window.location.href = href; }, 180);
   };
 
-  const handleMouseLeave = () => {
-    x.set(0);
-    y.set(0);
-  };
+  const lastAction = ACTIONS.find(a => a.id === last);
 
   return (
-    <motion.div
-      ref={ref}
-      style={{ rotateX: springX, rotateY: springY, transformPerspective: 800, ...style }}
-      className={className}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      onClick={onClick}
-    >
-      {children}
-    </motion.div>
-  );
-}
+    <div style={{ minHeight: "100vh", background: "#020617", color: "#fff", fontFamily: "system-ui, sans-serif", position: "relative", overflowX: "hidden" }}>
 
-/* ─────────────────────────────────────────────────────────────────────────
-   AMBIENT BACKGROUND — subtle gradient orbs
-───────────────────────────────────────────────────────────────────────── */
+      {/* Orbs */}
+      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
+        <div style={{ position: "absolute", top: -80, left: -80, width: 320, height: 320, borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.35) 0%, transparent 70%)" }} />
+        <div style={{ position: "absolute", bottom: -100, right: -60, width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.3) 0%, transparent 70%)" }} />
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)", backgroundSize: "48px 48px" }} />
+      </div>
 
-function AmbientBackground() {
-  return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden>
-      {/* Top-left indigo orb */}
-      <motion.div
-        className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-20"
-        style={{
-          background: "radial-gradient(circle, rgba(99,102,241,0.5) 0%, transparent 70%)",
-        }}
-        animate={{ scale: [1, 1.08, 1], opacity: [0.15, 0.22, 0.15] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-      />
-      {/* Bottom-right violet orb */}
-      <motion.div
-        className="absolute -bottom-40 -right-20 w-[30rem] h-[30rem] rounded-full opacity-15"
-        style={{
-          background: "radial-gradient(circle, rgba(139,92,246,0.45) 0%, transparent 70%)",
-        }}
-        animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.18, 0.1] }}
-        transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-      />
-      {/* Center green hint */}
-      <motion.div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full opacity-5"
-        style={{
-          background: "radial-gradient(circle, rgba(16,185,129,0.6) 0%, transparent 70%)",
-        }}
-        animate={{ scale: [1, 1.3, 1] }}
-        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 4 }}
-      />
-      {/* Subtle grid */}
-      <div
-        className="absolute inset-0 opacity-[0.025]"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
-          backgroundSize: "48px 48px",
-        }}
-      />
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   MAIN PAGE
-───────────────────────────────────────────────────────────────────────── */
-
-export default function HomePage() {
-  const [lastVisit, setLastVisit] = useState<string | null>(null);
-  const [activeAction, setActiveAction] = useState<string | null>(null);
-  const [sosOpen, setSosOpen] = useState(false);
-
-  useEffect(() => {
-    setLastVisit(localStorage.getItem("orizen_last_action"));
-  }, []);
-
-  const handleAction = (actionId: string, href: string) => {
-    setActiveAction(actionId);
-    localStorage.setItem("orizen_last_action", actionId);
-    setTimeout(() => {
-      window.location.href = href;
-    }, 180);
-  };
-
-  const lastAction = ACTIONS.find((a) => a.id === lastVisit);
-
-  return (
-    <div className="min-h-screen bg-[#020617] text-white relative overflow-x-hidden">
-      <AmbientBackground />
-
-      {/* ── HEADER ─────────────────────────────────────────────────── */}
-      <motion.header
-        initial={{ opacity: 0, y: -12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-        className="relative z-20 flex items-center justify-between px-5 pt-6 pb-2 max-w-lg mx-auto w-full"
-      >
-        {/* Logo */}
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-900/50">
-            <span className="text-xs font-black text-white">OZ</span>
-          </div>
-          <span className="font-bold text-white tracking-tight">OriZen</span>
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} style={{ position: "relative", zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "24px 20px 8px", maxWidth: 480, margin: "0 auto" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 12, background: "linear-gradient(135deg, #6366F1, #8B5CF6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900 }}>OZ</div>
+          <span style={{ fontWeight: 700, fontSize: 15 }}>OriZen</span>
         </div>
-
-        {/* SOS pill */}
-        <motion.button
-          whileTap={{ scale: 0.94 }}
-          whileHover={{ scale: 1.04 }}
-          onClick={() => setSosOpen(true)}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-red-600 hover:bg-red-500 transition-colors shadow-lg shadow-red-900/50 text-white font-bold text-sm"
-        >
-          <motion.span
-            animate={{ opacity: [1, 0.4, 1] }}
-            transition={{ duration: 1.4, repeat: Infinity }}
-            className="w-1.5 h-1.5 rounded-full bg-white"
-          />
+        <motion.button whileTap={{ scale: 0.93 }} onClick={() => setSos(true)}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 999, background: "#DC2626", border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", boxShadow: "0 4px 20px rgba(220,38,38,0.4)" }}>
+          <motion.span animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.3, repeat: Infinity }} style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", display: "inline-block" }} />
           SOS
         </motion.button>
-      </motion.header>
+      </motion.div>
 
-      {/* ── SOS MODAL ──────────────────────────────────────────────── */}
+      {/* SOS Modal */}
       <AnimatePresence>
-        {sosOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-end"
-            onClick={() => setSosOpen(false)}
-          >
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-lg mx-auto bg-slate-950 border-t border-slate-800 rounded-t-3xl px-5 pt-5 pb-10"
-            >
-              {/* Handle */}
-              <div className="w-10 h-1 bg-slate-700 rounded-full mx-auto mb-5" />
-
-              <div className="flex items-center justify-between mb-5">
+        {sos && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setSos(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", display: "flex", alignItems: "flex-end" }}>
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 280 }}
+              onClick={e => e.stopPropagation()}
+              style={{ width: "100%", maxWidth: 480, margin: "0 auto", background: "#0a0f1e", borderTop: "1px solid #1e293b", borderRadius: "24px 24px 0 0", padding: "20px 20px 40px" }}>
+              <div style={{ width: 40, height: 4, background: "#334155", borderRadius: 4, margin: "0 auto 20px" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
                 <div>
-                  <h2 className="font-bold text-white text-lg">Numéros d'urgence</h2>
-                  <p className="text-xs text-slate-500 mt-0.5">Gratuits · 24h/24 · 7j/7</p>
+                  <div style={{ fontWeight: 700, fontSize: 17 }}>Numéros d&apos;urgence</div>
+                  <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>Gratuits · 24h/24 · 7j/7</div>
                 </div>
-                <button
-                  onClick={() => setSosOpen(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 transition-colors"
-                >
-                  <X size={15} className="text-slate-400" />
-                </button>
+                <button onClick={() => setSos(false)} style={{ width: 32, height: 32, borderRadius: "50%", background: "#1e293b", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: 16 }}>✕</button>
               </div>
-
-              <div className="flex flex-col gap-3">
-                {SOS_NUMBERS.map((s, i) => (
-                  <motion.a
-                    key={s.number}
-                    initial={{ opacity: 0, x: -16 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.06, duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-                    href={`tel:${s.number}`}
-                    className="group flex items-center justify-between p-4 rounded-2xl border transition-all active:scale-[0.98]"
-                    style={{
-                      background: `${s.color}10`,
-                      borderColor: `${s.color}30`,
-                    }}
-                  >
-                    <div>
-                      <p className="font-bold text-white text-sm">{s.label}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{s.desc}</p>
-                    </div>
-                    <div
-                      className="flex items-center gap-2 font-black text-xl"
-                      style={{ color: s.color }}
-                    >
-                      <Phone size={15} />
-                      {s.number}
-                    </div>
-                  </motion.a>
-                ))}
-              </div>
+              {SOS.map((s, i) => (
+                <motion.a key={s.n} href={`tel:${s.n}`}
+                  initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.06 }}
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", borderRadius: 16, border: `1px solid ${s.c}30`, background: `${s.c}10`, marginBottom: 10, textDecoration: "none" }}>
+                  <div>
+                    <div style={{ fontWeight: 700, color: "#fff", fontSize: 14 }}>{s.label}</div>
+                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{s.desc}</div>
+                  </div>
+                  <div style={{ color: s.c, fontWeight: 900, fontSize: 20 }}>📞 {s.n}</div>
+                </motion.a>
+              ))}
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── MAIN ───────────────────────────────────────────────────── */}
-      <main className="relative z-10 px-4 pb-10 max-w-lg mx-auto w-full">
-        {/* ── HERO ─────────────────────────────────────────────────── */}
-        <motion.div
-          variants={heroVariants}
-          initial="hidden"
-          animate="visible"
-          className="mt-8 mb-8"
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.05 }}
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-semibold mb-4"
-          >
-            <Zap size={11} />
-            Aide immédiate · anonyme · gratuite
-          </motion.div>
+      {/* Hero */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
+        style={{ position: "relative", zIndex: 10, maxWidth: 480, margin: "0 auto", padding: "28px 20px 24px" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 999, border: "1px solid rgba(99,102,241,0.3)", background: "rgba(99,102,241,0.1)", color: "#a5b4fc", fontSize: 11, fontWeight: 600, marginBottom: 16 }}>
+          ⚡ Aide immédiate · anonyme · gratuite
+        </div>
+        <h1 style={{ fontSize: 40, fontWeight: 900, lineHeight: 1.08, margin: 0 }}>
+          <span style={{ color: "#fff" }}>De quoi</span><br />
+          <span style={{ background: "linear-gradient(135deg, #a5b4fc, #c4b5fd, #818cf8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>avez-vous besoin</span><br />
+          <span style={{ color: "#64748b", fontSize: 30, fontWeight: 700 }}>maintenant ?</span>
+        </h1>
+        <p style={{ color: "#475569", fontSize: 13, marginTop: 12, lineHeight: 1.6 }}>Sélectionnez une catégorie pour trouver les structures proches.</p>
+      </motion.div>
 
-          <h1 className="text-4xl sm:text-5xl font-black tracking-tight leading-[1.08]">
-            <span className="text-white">De quoi</span>
-            <br />
-            <span
-              className="bg-clip-text text-transparent"
-              style={{
-                backgroundImage:
-                  "linear-gradient(135deg, #a5b4fc 0%, #c4b5fd 40%, #818cf8 80%)",
-              }}
-            >
-              avez-vous besoin
-            </span>
-            <br />
-            <span className="text-slate-400 text-3xl sm:text-4xl font-bold">maintenant&nbsp;?</span>
-          </h1>
-
-          <p className="text-slate-500 text-sm mt-3 leading-relaxed max-w-xs">
-            Sélectionnez une catégorie pour trouver les structures les plus proches de vous.
-          </p>
-        </motion.div>
-
-        {/* ── BENTO 2×2 ────────────────────────────────────────────── */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-2 gap-3 mb-5"
-        >
-          {ACTIONS.map((action) => {
-            const Icon = action.icon;
-            const isActive = activeAction === action.id;
-
-            return (
-              <motion.div key={action.id} variants={itemVariants}>
-                <TiltCard
-                  className="relative cursor-pointer select-none h-[168px] rounded-2xl overflow-hidden group"
-                  style={{
-                    background: `rgba(${action.colorRgb},0.07)`,
-                    border: `1px solid rgba(${action.colorRgb},${isActive ? "0.6" : "0.2"})`,
-                    boxShadow: isActive
-                      ? `0 0 28px rgba(${action.colorRgb},0.3), inset 0 1px 0 rgba(255,255,255,0.08)`
-                      : `inset 0 1px 0 rgba(255,255,255,0.04)`,
-                  }}
-                  onClick={() => handleAction(action.id, action.href)}
-                >
-                  {/* Glow orb */}
-                  <div
-                    className="absolute -top-6 -right-6 w-28 h-28 rounded-full transition-all duration-500 group-hover:scale-150 group-hover:opacity-80"
-                    style={{
-                      background: `radial-gradient(circle, rgba(${action.colorRgb},0.25) 0%, transparent 70%)`,
-                      opacity: 0.5,
-                    }}
-                  />
-
-                  {/* Shine line at top */}
-                  <div
-                    className="absolute inset-x-0 top-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    style={{
-                      background: `linear-gradient(90deg, transparent, rgba(${action.colorRgb},0.6), transparent)`,
-                    }}
-                  />
-
-                  {/* Content */}
-                  <div className="relative z-10 flex flex-col h-full p-4">
-                    {/* Icon */}
-                    <div
-                      className="w-11 h-11 rounded-xl flex items-center justify-center mb-auto shadow-lg transition-transform duration-300 group-hover:scale-110"
-                      style={{
-                        background: `rgba(${action.colorRgb},0.15)`,
-                        boxShadow: `0 4px 16px rgba(${action.colorRgb},0.2)`,
-                      }}
-                    >
-                      <Icon size={20} style={{ color: action.color }} strokeWidth={1.8} />
-                    </div>
-
-                    <div className="mt-auto">
-                      {/* Tag */}
-                      <span
-                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full mb-1.5 inline-block"
-                        style={{
-                          color: action.color,
-                          background: `rgba(${action.colorRgb},0.12)`,
-                        }}
-                      >
-                        {action.tag}
-                      </span>
-
-                      {/* Label */}
-                      <p
-                        className="font-black text-xl leading-tight"
-                        style={{ color: action.color }}
-                      >
-                        {action.label}
-                      </p>
-
-                      {/* Sublabel */}
-                      <p className="text-xs text-slate-400 mt-0.5 leading-tight">
-                        {action.sublabel}
-                      </p>
-                    </div>
-
-                    {/* Arrow */}
-                    <ArrowUpRight
-                      size={14}
-                      className="absolute top-3.5 right-3.5 opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                      style={{ color: action.color }}
-                    />
-                  </div>
-                </TiltCard>
-              </motion.div>
-            );
-          })}
-        </motion.div>
-
-        {/* ── LAST VISIT ───────────────────────────────────────────── */}
-        <AnimatePresence>
-          {lastAction && (
-            <motion.div
-              initial={{ opacity: 0, y: 8, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-              className="flex items-center gap-3 p-3.5 rounded-xl mb-5"
-              style={{
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.07)",
-              }}
-            >
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                style={{ background: `rgba(${lastAction.colorRgb},0.12)` }}
-              >
-                <Clock size={14} style={{ color: lastAction.color }} />
+      {/* Bento 2×2 */}
+      <div style={{ position: "relative", zIndex: 10, maxWidth: 480, margin: "0 auto", padding: "0 20px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        {ACTIONS.map((a, i) => {
+          const isActive = active === a.id;
+          return (
+            <motion.div key={a.id}
+              initial={{ opacity: 0, y: 24, filter: "blur(4px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              transition={{ delay: 0.1 + i * 0.08, duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+              onClick={() => go(a.id, a.href)}
+              style={{ position: "relative", height: 168, borderRadius: 20, overflow: "hidden", cursor: "pointer", border: `1px solid rgba(${a.rgb},${isActive ? 0.7 : 0.22})`, background: `rgba(${a.rgb},0.07)`, boxShadow: isActive ? `0 0 28px rgba(${a.rgb},0.35)` : "none" }}>
+              {/* Glow orb */}
+              <div style={{ position: "absolute", top: -24, right: -24, width: 112, height: 112, borderRadius: "50%", background: `radial-gradient(circle, rgba(${a.rgb},0.3) 0%, transparent 70%)` }} />
+              {/* Top shine */}
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(90deg, transparent, rgba(${a.rgb},0.5), transparent)` }} />
+              {/* Content */}
+              <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", height: "100%", padding: 16 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 14, background: `rgba(${a.rgb},0.15)`, boxShadow: `0 4px 16px rgba(${a.rgb},0.2)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>
+                  {a.icon}
+                </div>
+                <div style={{ marginTop: "auto" }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: a.color, background: `rgba(${a.rgb},0.12)`, padding: "2px 8px", borderRadius: 999, display: "inline-block", marginBottom: 6 }}>{a.tag}</span>
+                  <div style={{ fontWeight: 900, fontSize: 20, color: a.color, lineHeight: 1.1 }}>{a.label}</div>
+                  <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 3 }}>{a.sub}</div>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[11px] text-slate-600 font-medium">Dernière aide consultée</p>
-                <p className="text-sm font-bold text-slate-300">{lastAction.label}</p>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Last visit */}
+      <AnimatePresence>
+        {lastAction && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            style={{ position: "relative", zIndex: 10, maxWidth: 480, margin: "12px auto 0", padding: "0 20px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.03)" }}>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: `rgba(${lastAction.rgb},0.12)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>{lastAction.icon}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 10, color: "#475569", fontWeight: 500 }}>Dernière aide consultée</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#cbd5e1" }}>{lastAction.label}</div>
               </div>
-              <button
-                onClick={() => handleAction(lastAction.id, lastAction.href)}
-                className="text-xs font-bold transition-colors px-2.5 py-1 rounded-lg"
-                style={{
-                  color: lastAction.color,
-                  background: `rgba(${lastAction.colorRgb},0.1)`,
-                }}
-              >
+              <button onClick={() => go(lastAction.id, lastAction.href)}
+                style={{ fontSize: 11, fontWeight: 700, color: lastAction.color, background: `rgba(${lastAction.rgb},0.1)`, border: "none", padding: "5px 10px", borderRadius: 8, cursor: "pointer" }}>
                 Reprendre →
               </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-        {/* ── FOOTER LINKS ─────────────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.5 }}
-          className="flex items-center justify-center gap-4"
-        >
-          <Link
-            href="/droits"
-            className="text-xs text-slate-600 hover:text-slate-400 transition-colors underline underline-offset-2"
-          >
-            Vos droits
-          </Link>
-          <span className="text-slate-800">·</span>
-          <Link
-            href="/assistant"
-            className="text-xs text-slate-600 hover:text-slate-400 transition-colors underline underline-offset-2"
-          >
-            Assistant IA
-          </Link>
-          <span className="text-slate-800">·</span>
-          <Link
-            href="/carte"
-            className="text-xs text-slate-600 hover:text-slate-400 transition-colors underline underline-offset-2"
-          >
-            Carte
-          </Link>
-        </motion.div>
-      </main>
+      {/* Footer */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
+        style={{ position: "relative", zIndex: 10, display: "flex", justifyContent: "center", gap: 16, padding: "24px 0", fontSize: 11 }}>
+        <Link href="/droits" style={{ color: "#475569", textDecoration: "underline" }}>Vos droits</Link>
+        <span style={{ color: "#1e293b" }}>·</span>
+        <Link href="/assistant" style={{ color: "#475569", textDecoration: "underline" }}>Assistant IA</Link>
+        <span style={{ color: "#1e293b" }}>·</span>
+        <Link href="/carte" style={{ color: "#475569", textDecoration: "underline" }}>Carte</Link>
+      </motion.div>
+
     </div>
   );
 }
