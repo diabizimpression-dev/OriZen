@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { ArrowLeft, Navigation, Phone, MapPin, FileText, AlertCircle, CheckCircle } from "lucide-react";
+import { ArrowLeft, Navigation, Phone, MapPin, FileText, AlertCircle, CheckCircle, Bus, Loader2, FootprintsIcon } from "lucide-react";
 
 const DefaultIcon = L.icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -62,6 +62,27 @@ function ReliabilityBadge({ score }: { score: number }) {
   );
 }
 
+interface TransitLeg {
+  mode: string;
+  line: string;
+  direction: string;
+  network: string;
+  duration: number;
+}
+
+interface Journey {
+  total: string;
+  walking: string | null;
+  transfers: number;
+  transit: TransitLeg[];
+}
+
+interface TransportCache {
+  journeys: Journey[];
+  loading: boolean;
+  loaded: boolean;
+}
+
 interface MapProps {
   besoin?: string;
 }
@@ -72,6 +93,7 @@ export default function Map({ besoin = "tous" }: MapProps) {
   const [loading, setLoading] = useState(true);
   const [dataSource, setDataSource] = useState<"osm" | "fallback" | null>(null);
   const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
+  const [transportCache, setTransportCache] = useState<Record<string, TransportCache>>({});
 
   const meta = BESOIN_META[besoin] ?? BESOIN_META["tous"];
 
@@ -107,8 +129,31 @@ export default function Map({ besoin = "tous" }: MapProps) {
 
   const handleReport = (id: string) => {
     setReportedIds((prev) => new Set(prev).add(id));
-    // Futur : POST /api/structures/report avec l'id
   };
+
+  const fetchTransport = useCallback((structure: Structure) => {
+    if (transportCache[structure.id]?.loaded || transportCache[structure.id]?.loading) return;
+    setTransportCache((prev) => ({
+      ...prev,
+      [structure.id]: { journeys: [], loading: true, loaded: false },
+    }));
+    fetch(
+      `/api/transport?from_lat=${center[0]}&from_lng=${center[1]}&to_lat=${structure.lat}&to_lng=${structure.lng}`
+    )
+      .then((r) => r.json())
+      .then((data) => {
+        setTransportCache((prev) => ({
+          ...prev,
+          [structure.id]: { journeys: data.journeys ?? [], loading: false, loaded: true },
+        }));
+      })
+      .catch(() => {
+        setTransportCache((prev) => ({
+          ...prev,
+          [structure.id]: { journeys: [], loading: false, loaded: true },
+        }));
+      });
+  }, [center, transportCache]);
 
   return (
     <div className="h-full w-full relative">
@@ -126,8 +171,12 @@ export default function Map({ besoin = "tous" }: MapProps) {
 
         {structures.map((s) => (
           <Marker key={s.id} position={[s.lat, s.lng]}>
-            <Popup maxWidth={260} className="orizen-popup">
-              <div className="text-slate-900 p-1" style={{ minWidth: "220px" }}>
+            <Popup
+              maxWidth={270}
+              className="orizen-popup"
+              eventHandlers={{ add: () => fetchTransport(s) }}
+            >
+              <div className="text-slate-900 p-1" style={{ minWidth: "230px" }}>
                 {/* Nom + type */}
                 <h3 className="font-bold text-sm leading-tight mb-1">{s.name}</h3>
                 <p className="text-xs text-slate-500 mb-2 capitalize">{s.type}</p>
@@ -202,8 +251,48 @@ export default function Map({ besoin = "tous" }: MapProps) {
                     className="flex items-center justify-center gap-1.5 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold hover:bg-slate-200 transition-colors"
                   >
                     <Navigation size={12} />
-                    Itinéraire
+                    Itinéraire Google Maps
                   </a>
+
+                  {/* Navitia Transport */}
+                  {(() => {
+                    const tc = transportCache[s.id];
+                    if (tc?.loading) {
+                      return (
+                        <div className="flex items-center gap-1.5 py-1.5 text-slate-400 text-xs justify-center">
+                          <Loader2 size={10} className="animate-spin" />
+                          Calcul transport…
+                        </div>
+                      );
+                    }
+                    if (tc?.loaded && tc.journeys.length > 0) {
+                      const j = tc.journeys[0];
+                      return (
+                        <div className="p-2 rounded-lg bg-blue-50 border border-blue-200">
+                          <p className="text-xs font-semibold text-blue-800 mb-1 flex items-center gap-1">
+                            <Bus size={10} />
+                            Transports en commun · {j.total}
+                          </p>
+                          {j.walking && j.transit.length === 0 && (
+                            <p className="text-xs text-blue-700 flex items-center gap-1">
+                              <FootprintsIcon size={9} />
+                              {j.walking} à pied
+                            </p>
+                          )}
+                          {j.transit.map((t, i) => (
+                            <p key={i} className="text-xs text-blue-700">
+                              {t.mode} {t.line && `· Ligne ${t.line}`}
+                              {t.direction && ` → ${t.direction.slice(0, 25)}`}
+                            </p>
+                          ))}
+                          {j.transfers > 0 && (
+                            <p className="text-xs text-blue-500">{j.transfers} correspondance{j.transfers > 1 ? "s" : ""}</p>
+                          )}
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                   {!reportedIds.has(s.id) ? (
                     <button
                       onClick={() => handleReport(s.id)}
