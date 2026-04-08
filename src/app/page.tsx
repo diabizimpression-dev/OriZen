@@ -5,10 +5,42 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, Utensils, HeartPulse, MessageCircle,
-  ArrowRight, Clock, Phone, X
+  Clock, Phone, X, MapPin, Thermometer,
+  FileText, Baby, Flame, Wallet, Navigation,
+  Wind, Snowflake, Sun,
 } from "lucide-react";
 
-const ACTIONS = [
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface WeatherData {
+  temperature: number;
+  apparent_temperature: number | null;
+  weathercode: number;
+  windspeed: number | null;
+  alert: "grand_froid" | "canicule" | "neige" | "vent" | null;
+}
+
+interface LocationData {
+  commune: string;
+  postcode: string;
+  departement: string;
+  region: string;
+}
+
+interface NearbyStructure {
+  id: string;
+  name: string;
+  type: string;
+  addr?: string;
+  phone?: string;
+  open?: string;
+  distance_m?: number;
+  reliability_score?: number;
+}
+
+// ─── Données statiques ───────────────────────────────────────────────────────
+
+const MAIN_ACTIONS = [
   {
     id: "logement",
     label: "Dormir",
@@ -18,9 +50,10 @@ const ACTIONS = [
     bg: "rgba(99,102,241,0.12)",
     border: "rgba(99,102,241,0.3)",
     href: "/carte?besoin=logement",
+    urgence: "115",
   },
   {
-    id: "manger",
+    id: "alimentation",
     label: "Manger",
     sublabel: "Distribution alimentaire",
     icon: Utensils,
@@ -28,9 +61,10 @@ const ACTIONS = [
     bg: "rgba(16,185,129,0.12)",
     border: "rgba(16,185,129,0.3)",
     href: "/carte?besoin=alimentation",
+    urgence: null,
   },
   {
-    id: "soin",
+    id: "sante",
     label: "Se soigner",
     sublabel: "Soins gratuits (PASS)",
     icon: HeartPulse,
@@ -38,62 +72,273 @@ const ACTIONS = [
     bg: "rgba(245,158,11,0.12)",
     border: "rgba(245,158,11,0.3)",
     href: "/carte?besoin=sante",
+    urgence: "15",
   },
   {
     id: "parler",
-    label: "Parler",
-    sublabel: "Aide & conseils",
+    label: "Assistant",
+    sublabel: "Aide & conseils IA",
     icon: MessageCircle,
     color: "#8B5CF6",
     bg: "rgba(139,92,246,0.12)",
     border: "rgba(139,92,246,0.3)",
     href: "/assistant",
+    urgence: null,
   },
-];
+] as const;
+
+const EXTRA_ACTIONS = [
+  { id: "sans-papiers", label: "Papiers", icon: FileText, color: "#8B5CF6", href: "/carte?besoin=sans-papiers" },
+  { id: "mineur-isole", label: "Mineur", icon: Baby, color: "#EC4899", href: "/carte?besoin=mineur-isole" },
+  { id: "violence-familiale", label: "Violence", icon: Flame, color: "#F97316", href: "/carte?besoin=violence" },
+  { id: "aide-financiere", label: "Finances", icon: Wallet, color: "#06B6D4", href: "/carte?besoin=finance" },
+] as const;
 
 const SOS_NUMBERS = [
-  { label: "SAMU Social", number: "115", desc: "Hébergement d'urgence" },
+  { label: "SAMU Social", number: "115", desc: "Hébergement d'urgence · 24h/24" },
   { label: "Police", number: "17", desc: "Danger, agression" },
-  { label: "Violences", number: "3919", desc: "Violences conjugales" },
+  { label: "Violences Femmes", number: "3919", desc: "Violences conjugales · gratuit" },
   { label: "SAMU", number: "15", desc: "Urgence médicale" },
-];
+  { label: "Enfance en Danger", number: "119", desc: "Mineurs en danger" },
+  { label: "Toutes urgences", number: "112", desc: "Numéro universel européen" },
+] as const;
+
+// ─── Helpers météo ───────────────────────────────────────────────────────────
+
+function weatherIcon(code: number): string {
+  if (code === 0) return "☀️";
+  if (code <= 3) return "⛅";
+  if (code <= 48) return "🌫";
+  if (code <= 55) return "🌦";
+  if (code <= 67) return "🌧";
+  if (code <= 77) return "❄️";
+  if (code <= 82) return "🌦";
+  return "⛈";
+}
+
+function getAlertConfig(alert: WeatherData["alert"], temp: number) {
+  switch (alert) {
+    case "grand_froid":
+      return {
+        icon: Snowflake,
+        text: temp <= 0
+          ? `Gel ${temp}°C — Plan Grand Froid renforcé · Appeler le 115 maintenant`
+          : `Nuit froide ${temp}°C — Plan Grand Froid activé · 115 disponible`,
+        color: "#93C5FD",
+        bg: "rgba(59,130,246,0.14)",
+        border: "rgba(59,130,246,0.35)",
+      };
+    case "canicule":
+      return {
+        icon: Sun,
+        text: `Canicule ${temp}°C — Plan Canicule · Hydratation & fraîcheur essentielles`,
+        color: "#FCA5A5",
+        bg: "rgba(239,68,68,0.12)",
+        border: "rgba(239,68,68,0.3)",
+      };
+    case "neige":
+      return {
+        icon: Snowflake,
+        text: `Neige en cours — Hébergement d'urgence disponible · 115`,
+        color: "#BAE6FD",
+        bg: "rgba(14,165,233,0.12)",
+        border: "rgba(14,165,233,0.3)",
+      };
+    case "vent":
+      return {
+        icon: Wind,
+        text: `Vents forts — Rester à l'abri · 115 si besoin`,
+        color: "#D4D4D8",
+        bg: "rgba(100,116,139,0.14)",
+        border: "rgba(100,116,139,0.35)",
+      };
+    default:
+      return null;
+  }
+}
+
+// ─── Composant principal ─────────────────────────────────────────────────────
 
 export default function HomePage() {
   const [lastVisit, setLastVisit] = useState<string | null>(null);
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const [sosOpen, setSosOpen] = useState(false);
 
+  // Données temps réel
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [location, setLocation] = useState<LocationData | null>(null);
+  const [structureCounts, setStructureCounts] = useState<Record<string, number>>({});
+  const [nearbyStructures, setNearbyStructures] = useState<NearbyStructure[]>([]);
+  const [contextLoaded, setContextLoaded] = useState(false);
+
+  // 1. Géolocalisation silencieuse
   useEffect(() => {
     setLastVisit(localStorage.getItem("orizen_last_action"));
+    if (!navigator.geolocation) {
+      setCoords({ lat: 48.8566, lng: 2.3522 });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => setCoords({ lat: 48.8566, lng: 2.3522 }),
+      { timeout: 6000, maximumAge: 300000 }
+    );
   }, []);
+
+  // 2. Fetch contexte + structures dès que coords disponibles
+  useEffect(() => {
+    if (!coords) return;
+    const { lat, lng } = coords;
+
+    // Context (météo + géocodage) — API gratuite Open-Meteo + BAN
+    fetch(`/api/context?lat=${lat}&lng=${lng}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.weather) setWeather(data.weather);
+        if (data?.location) setLocation(data.location);
+        setContextLoaded(true);
+      })
+      .catch(() => setContextLoaded(true));
+
+    // Structures proches — Overpass/OSM en parallèle
+    const types = ["logement", "alimentation", "sante"] as const;
+    Promise.allSettled(
+      types.map((t) =>
+        fetch(`/api/structures?lat=${lat}&lng=${lng}&type=${t}&radius=5000`).then((r) => r.json())
+      )
+    ).then((results) => {
+      const counts: Record<string, number> = {};
+      const all: NearbyStructure[] = [];
+      results.forEach((res, i) => {
+        if (res.status === "fulfilled" && res.value?.structures) {
+          const t = types[i];
+          counts[t] = res.value.count || 0;
+          res.value.structures.slice(0, 2).forEach((s: NearbyStructure) =>
+            all.push({ ...s, type: t })
+          );
+        }
+      });
+      setStructureCounts(counts);
+      setNearbyStructures(
+        all
+          .filter((s) => s.distance_m != null)
+          .sort((a, b) => (a.distance_m ?? 9999) - (b.distance_m ?? 9999))
+          .slice(0, 3)
+      );
+    });
+  }, [coords]);
+
+  // ─── Handlers ──────────────────────────────────────────────────────────────
 
   const handleAction = (actionId: string, href: string) => {
     setActiveAction(actionId);
     localStorage.setItem("orizen_last_action", actionId);
-    setTimeout(() => {
-      window.location.href = href;
-    }, 160);
+    setTimeout(() => { window.location.href = href; }, 140);
   };
 
-  const lastActionLabel = ACTIONS.find((a) => a.id === lastVisit)?.label;
+  // ─── Computed ──────────────────────────────────────────────────────────────
+
+  const lastActionData = MAIN_ACTIONS.find((a) => a.id === lastVisit);
+  const alertConfig = weather?.alert ? getAlertConfig(weather.alert, weather.temperature) : null;
+  const totalStructures = Object.values(structureCounts).reduce((a, b) => a + b, 0);
+
+  const typeColor: Record<string, string> = {
+    logement: "#6366F1",
+    alimentation: "#10B981",
+    sante: "#F59E0B",
+  };
+  const typeLabel: Record<string, string> = {
+    logement: "Logement",
+    alimentation: "Alimentation",
+    sante: "Santé",
+  };
+
+  // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-[#020617] text-white flex flex-col">
-      {/* BOUTON URGENCE — EN PREMIER, pleine largeur, rouge plein */}
-      <div className="w-full px-4 pt-5 pb-2">
+
+      {/* ── Barre contexte : localisation + météo ── */}
+      <AnimatePresence>
+        {contextLoaded && (location || weather) && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full px-4 pt-3"
+          >
+            <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-900/70 border border-slate-800">
+              {location?.commune ? (
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <MapPin size={11} className="text-slate-500 shrink-0" />
+                  <span className="text-xs text-slate-400 truncate">
+                    {location.commune}
+                    {location.postcode ? ` · ${location.postcode}` : ""}
+                    {location.departement ? ` · ${location.departement}` : ""}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <MapPin size={11} className="text-slate-600 shrink-0" />
+                  <span className="text-xs text-slate-600">Localisation…</span>
+                </div>
+              )}
+              {weather && (
+                <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                  <span className="text-sm">{weatherIcon(weather.weathercode)}</span>
+                  <span className="text-xs font-bold text-slate-200">{weather.temperature}°C</span>
+                  {weather.apparent_temperature != null &&
+                    weather.apparent_temperature !== weather.temperature && (
+                      <span className="text-xs text-slate-500">
+                        ressenti {weather.apparent_temperature}°
+                      </span>
+                    )}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Alerte Plan gouvernemental (Grand Froid / Canicule / Neige) ── */}
+      <AnimatePresence>
+        {alertConfig && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="w-full px-4 pt-2"
+          >
+            <div
+              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold border"
+              style={{
+                background: alertConfig.bg,
+                borderColor: alertConfig.border,
+                color: alertConfig.color,
+              }}
+            >
+              <Thermometer size={13} className="shrink-0" />
+              <span>{alertConfig.text}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Bouton urgence ── */}
+      <div className="w-full px-4 pt-3 pb-1">
         <motion.button
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           whileTap={{ scale: 0.97 }}
           onClick={() => setSosOpen(true)}
-          className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-bold text-base transition-colors shadow-lg shadow-red-900/40"
+          className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-red-600 hover:bg-red-500 active:bg-red-700 font-bold text-base transition-colors shadow-lg shadow-red-900/40"
         >
           <span className="text-xl">🚨</span>
           Urgence — Danger immédiat
         </motion.button>
       </div>
 
-      {/* Modale SOS Numbers */}
+      {/* ── Modale SOS ── */}
       <AnimatePresence>
         {sosOpen && (
           <motion.div
@@ -108,10 +353,10 @@ export default function HomePage() {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 80, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full bg-slate-900 border-t border-slate-700 rounded-t-3xl px-5 pt-5 pb-8"
+              className="w-full bg-slate-900 border-t border-slate-700 rounded-t-3xl px-5 pt-5 pb-8 max-h-[80vh] overflow-y-auto"
             >
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="font-bold text-white text-lg">Appel d'urgence</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-bold text-white text-lg">Appel d&apos;urgence</h2>
                 <button
                   onClick={() => setSosOpen(false)}
                   className="p-2 rounded-xl hover:bg-slate-800 transition-colors"
@@ -119,52 +364,60 @@ export default function HomePage() {
                   <X size={18} className="text-slate-400" />
                 </button>
               </div>
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2.5">
                 {SOS_NUMBERS.map((s) => (
                   <a
                     key={s.number}
                     href={`tel:${s.number}`}
-                    className="flex items-center justify-between p-4 rounded-2xl bg-red-950/60 border border-red-800/50 hover:bg-red-900/50 transition-colors active:scale-98"
+                    className="flex items-center justify-between p-4 rounded-2xl bg-red-950/60 border border-red-800/50 hover:bg-red-900/50 transition-colors"
                   >
                     <div>
                       <p className="font-bold text-white">{s.label}</p>
                       <p className="text-xs text-slate-400">{s.desc}</p>
                     </div>
                     <div className="flex items-center gap-2 text-red-400">
-                      <Phone size={16} />
+                      <Phone size={15} />
                       <span className="font-bold text-lg">{s.number}</span>
                     </div>
                   </a>
                 ))}
               </div>
-              <p className="text-center text-xs text-slate-600 mt-5">
-                Tous ces numéros sont gratuits · disponibles 24h/24
+              <p className="text-center text-xs text-slate-600 mt-4">
+                Tous ces numéros sont gratuits · 24h/24
               </p>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Contenu principal */}
-      <main className="flex-1 flex flex-col items-center px-4 py-4 max-w-lg mx-auto w-full">
-        {/* Titre */}
+      {/* ── Contenu principal ── */}
+      <main className="flex-1 flex flex-col items-center px-4 py-3 max-w-lg mx-auto w-full">
+
+        {/* Titre + compteur live */}
         <motion.div
-          initial={{ opacity: 0, y: -12 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className="text-center mb-6"
+          className="text-center mb-4 w-full"
         >
-          <h1 className="text-3xl font-bold tracking-tight mb-1 bg-gradient-to-b from-white to-slate-400 bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold tracking-tight mb-0.5 bg-gradient-to-b from-white to-slate-400 bg-clip-text text-transparent">
             De quoi avez-vous besoin ?
           </h1>
-          <p className="text-slate-500 text-sm">Sélectionnez pour trouver une aide immédiate.</p>
+          <p className="text-slate-500 text-xs">
+            {totalStructures > 0
+              ? `${totalStructures} structures trouvées à moins de 5 km`
+              : coords
+                ? "Recherche des structures proches…"
+                : "Localisation en cours…"}
+          </p>
         </motion.div>
 
-        {/* Grid 2x2 */}
-        <div className="grid grid-cols-2 gap-3 w-full mb-5">
-          {ACTIONS.map((action, i) => {
+        {/* ── Grid 2×2 principal ── */}
+        <div className="grid grid-cols-2 gap-3 w-full mb-3">
+          {MAIN_ACTIONS.map((action, i) => {
             const Icon = action.icon;
             const isActive = activeAction === action.id;
+            const count = structureCounts[action.id];
             return (
               <motion.button
                 key={action.id}
@@ -179,45 +432,164 @@ export default function HomePage() {
                   borderColor: isActive ? action.color : action.border,
                 }}
               >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center mb-2.5 transition-transform group-hover:scale-110"
-                  style={{ background: action.color + "25" }}
-                >
-                  <Icon size={20} style={{ color: action.color }} />
+                {/* Icône + badge count */}
+                <div className="flex items-start justify-between w-full mb-2.5">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
+                    style={{ background: action.color + "22" }}
+                  >
+                    <Icon size={18} style={{ color: action.color }} />
+                  </div>
+                  {count != null && count > 0 && (
+                    <span
+                      className="text-xs font-bold px-1.5 py-0.5 rounded-lg"
+                      style={{ background: action.color + "22", color: action.color }}
+                    >
+                      {count}
+                    </span>
+                  )}
                 </div>
-                <p className="font-bold text-base leading-tight" style={{ color: action.color }}>
+
+                <p className="font-bold text-sm leading-tight" style={{ color: action.color }}>
                   {action.label}
                 </p>
                 <p className="text-xs text-slate-400 mt-0.5 leading-tight">{action.sublabel}</p>
-                <ArrowRight
-                  size={13}
-                  className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ color: action.color }}
-                />
+
+                {/* Numéro urgence si applicable */}
+                {action.urgence && (
+                  <p
+                    className="text-xs mt-1.5 font-semibold"
+                    style={{ color: action.color + "bb" }}
+                  >
+                    {action.urgence} →
+                  </p>
+                )}
               </motion.button>
             );
           })}
         </div>
 
-        {/* Dernière visite */}
+        {/* ── Actions supplémentaires (4 scénarios bonus) ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.33 }}
+          className="w-full grid grid-cols-4 gap-2 mb-4"
+        >
+          {EXTRA_ACTIONS.map((a) => {
+            const Icon = a.icon;
+            return (
+              <button
+                key={a.id}
+                onClick={() => {
+                  localStorage.setItem("orizen_last_action", a.id);
+                  window.location.href = a.href;
+                }}
+                className="flex flex-col items-center gap-1 py-2.5 rounded-xl border border-slate-800 bg-slate-900/50 hover:bg-slate-800/50 transition-colors"
+              >
+                <Icon size={15} style={{ color: a.color }} />
+                <span className="text-xs text-slate-400 font-medium">{a.label}</span>
+              </button>
+            );
+          })}
+        </motion.div>
+
+        {/* ── Structures à proximité (données OSM temps réel) ── */}
         <AnimatePresence>
-          {lastActionLabel && (
+          {nearbyStructures.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.42 }}
+              className="w-full mb-4"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Proches de vous
+                </h2>
+                <Link
+                  href="/carte"
+                  className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                >
+                  Voir la carte →
+                </Link>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {nearbyStructures.map((s, i) => {
+                  const color = typeColor[s.type] ?? "#8B5CF6";
+                  const label = typeLabel[s.type] ?? s.type;
+                  const distKm =
+                    s.distance_m != null
+                      ? s.distance_m < 1000
+                        ? `${s.distance_m} m`
+                        : `${(s.distance_m / 1000).toFixed(1)} km`
+                      : null;
+
+                  return (
+                    <motion.div
+                      key={s.id}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.44 + i * 0.07 }}
+                      className="flex items-center gap-3 p-3 rounded-xl border border-slate-800 bg-slate-900/60"
+                    >
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                        style={{ background: color + "22" }}
+                      >
+                        <Navigation size={14} style={{ color }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{s.name}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <span
+                            className="text-xs px-1.5 py-0.5 rounded"
+                            style={{ background: color + "22", color }}
+                          >
+                            {label}
+                          </span>
+                          {distKm && (
+                            <span className="text-xs text-slate-500">{distKm}</span>
+                          )}
+                          {s.open && (
+                            <span className="text-xs text-slate-600">{s.open}</span>
+                          )}
+                        </div>
+                      </div>
+                      {s.phone && (
+                        <a
+                          href={`tel:${s.phone}`}
+                          className="shrink-0 p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Phone size={13} className="text-slate-300" />
+                        </a>
+                      )}
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Continuer la dernière recherche ── */}
+        <AnimatePresence>
+          {lastActionData && (
             <motion.div
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="w-full flex items-center gap-3 p-3.5 rounded-xl border border-slate-800 bg-slate-900/50 mb-4"
+              className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-800 bg-slate-900/50 mb-4"
             >
-              <Clock size={15} className="text-slate-500 shrink-0" />
+              <Clock size={14} className="text-slate-500 shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-slate-500">Dernière aide consultée</p>
-                <p className="text-sm font-semibold text-slate-300">{lastActionLabel}</p>
+                <p className="text-sm font-semibold text-slate-300">{lastActionData.label}</p>
               </div>
               <button
-                onClick={() => {
-                  const action = ACTIONS.find((a) => a.id === lastVisit);
-                  if (action) handleAction(action.id, action.href);
-                }}
+                onClick={() => handleAction(lastActionData.id, lastActionData.href)}
                 className="text-xs text-indigo-400 font-bold hover:text-indigo-300 transition whitespace-nowrap"
               >
                 Continuer →
@@ -226,21 +598,18 @@ export default function HomePage() {
           )}
         </AnimatePresence>
 
-        {/* Lien discret droits */}
-        <p className="text-xs text-slate-600 text-center">
-          Besoin d'informations ?{" "}
-          <Link
-            href="/droits"
-            className="text-slate-400 hover:text-white underline underline-offset-2 transition"
-          >
+        {/* ── Footer liens ── */}
+        <p className="text-xs text-slate-600 text-center mt-auto pb-2">
+          <Link href="/droits" className="text-slate-400 hover:text-white underline underline-offset-2 transition">
             Vos droits
           </Link>
           {" · "}
-          <Link
-            href="/assistant"
-            className="text-slate-400 hover:text-white underline underline-offset-2 transition"
-          >
-            Assistant
+          <Link href="/assistant" className="text-slate-400 hover:text-white underline underline-offset-2 transition">
+            Assistant IA
+          </Link>
+          {" · "}
+          <Link href="/carte" className="text-slate-400 hover:text-white underline underline-offset-2 transition">
+            Carte complète
           </Link>
         </p>
       </main>
