@@ -9,6 +9,9 @@ import {
   FileText, Baby, Flame, Wallet, Navigation,
   Wind, Snowflake, Sun,
 } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const PushNotifications = dynamic(() => import("@/components/PushNotifications"), { ssr: false });
 
 // ─── Langues supportées ──────────────────────────────────────────────────────
 
@@ -361,6 +364,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#020617] text-white flex flex-col">
+      <PushNotifications />
 
       {/* ── Barre contexte : localisation + météo ── */}
       <AnimatePresence>
