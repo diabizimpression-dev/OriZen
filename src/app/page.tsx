@@ -253,6 +253,10 @@ export default function HomePage() {
   const [structureCounts, setStructureCounts] = useState<Record<string, number>>({});
   const [nearbyStructures, setNearbyStructures] = useState<NearbyStructure[]>([]);
   const [contextLoaded, setContextLoaded] = useState(false);
+  const [ccas, setCcas] = useState<{
+    ccasName: string; ccasPhone: string | null; ccasAddress: string | null;
+    commune: string; mairiePhone: string | null; rightsSummary: string;
+  } | null>(null);
 
   // 1. Géolocalisation silencieuse
   useEffect(() => {
@@ -284,6 +288,12 @@ export default function HomePage() {
         setContextLoaded(true);
       })
       .catch(() => setContextLoaded(true));
+
+    // CCAS local
+    fetch(`/api/ccas?lat=${lat}&lng=${lng}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.ok && data.ccas) setCcas(data.ccas); })
+      .catch(() => {});
 
     // Structures proches — Overpass/OSM en parallèle
     const types = ["logement", "alimentation", "sante"] as const;
@@ -695,6 +705,37 @@ export default function HomePage() {
                   );
                 })}
               </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── CCAS local ── */}
+        <AnimatePresence>
+          {ccas && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="w-full mb-4 p-3 rounded-xl border border-cyan-800/40 bg-cyan-950/30"
+            >
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-cyan-400">{ccas.ccasName}</p>
+                  {ccas.ccasAddress && (
+                    <p className="text-xs text-slate-500 truncate">{ccas.ccasAddress}</p>
+                  )}
+                  <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{ccas.rightsSummary.slice(0, 100)}…</p>
+                </div>
+                {(ccas.ccasPhone ?? ccas.mairiePhone) && (
+                  <a
+                    href={`tel:${(ccas.ccasPhone ?? ccas.mairiePhone)?.replace(/\s/g, "")}`}
+                    className="shrink-0 p-1.5 rounded-lg bg-cyan-900/50 hover:bg-cyan-800/50 transition-colors"
+                  >
+                    <Phone size={13} className="text-cyan-400" />
+                  </a>
+                )}
+              </div>
+              <p className="text-xs text-cyan-600">Aide d'urgence locale · 48h · mairie</p>
             </motion.div>
           )}
         </AnimatePresence>
