@@ -35,8 +35,8 @@ export async function GET(request: Request) {
   const lat = parseFloat(searchParams.get("lat") || "48.8566");
   const lng = parseFloat(searchParams.get("lng") || "2.3522");
 
-  // Appels parallèles : Open-Meteo + BAN (Base Adresse Nationale)
-  const [weatherRes, banRes] = await Promise.allSettled([
+  // Appels parallèles : Open-Meteo + BAN + Vigilance Météo-France
+  const [weatherRes, banRes, vigilanceRes] = await Promise.allSettled([
     // Open-Meteo — météo gratuite, sans clé, précision horaire
     fetch(
       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weathercode,windspeed_10m,apparent_temperature&timezone=Europe%2FParis&forecast_days=1`,
@@ -46,6 +46,11 @@ export async function GET(request: Request) {
     fetch(
       `https://api-adresse.data.gouv.fr/reverse/?lon=${lng}&lat=${lat}&limit=1`,
       { next: { revalidate: 86400 } } // Cache 24h (la localisation ne change pas souvent)
+    ),
+    // Vigilance Météo-France — alertes officielles par département
+    fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/vigilance?lat=${lat}&lng=${lng}`,
+      { next: { revalidate: 1800 } }
     ),
   ]);
 
@@ -113,13 +118,47 @@ export async function GET(request: Request) {
     }
   }
 
+  // --- Vigilance officielle ---
+  let vigilance: { maxLevel: number; maxLevelLabel: string; alerts: unknown[]; source: string } | null = null;
+  if (vigilanceRes.status === "fulfilled" && vigilanceRes.value.ok) {
+    try {
+      const data = await vigilanceRes.value.json();
+      if (data.ok && data.alerts != null) {
+        vigilance = {
+          maxLevel: data.maxLevel,
+          maxLevelLabel: data.maxLevelLabel,
+          alerts: data.alerts,
+          source: data.source,
+        };
+      }
+    } catch {
+      // Silently fail
+    }
+  }
+
+  // Si vigilance indique grand froid ou canicule, ça prime sur la détection Open-Meteo
+  if (vigilance && vigilance.alerts.length > 0 && weather) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hasGrandFroid = (vigilance.alerts as any[]).some(
+      (a) => typeof a === "object" && a !== null && "phenomenon" in a && String((a as {phenomenon: string}).phenomenon).toLowerCase().includes("froid")
+    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hasCanicule = (vigilance.alerts as any[]).some(
+      (a) => typeof a === "object" && a !== null && "phenomenon" in a && String((a as {phenomenon: string}).phenomenon).toLowerCase().includes("canicule")
+    );
+    if (hasGrandFroid && weather.alert == null) weather.alert = "grand_froid";
+    if (hasCanicule && weather.alert == null) weather.alert = "canicule";
+  }
+
   return NextResponse.json({
     ok: true,
     weather,
     location,
+    vigilance,
     sources: {
       weather: weatherRes.status === "fulfilled" ? "open-meteo" : null,
       location: banRes.status === "fulfilled" ? "ban-gouv" : null,
+      vigilance: vigilance?.source ?? null,
     },
   });
 }
