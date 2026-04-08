@@ -767,15 +767,19 @@ export default function HomePage() {
         {/* ── Footer liens ── */}
         <p className="text-xs text-slate-600 text-center mt-auto pb-2">
           <Link href="/droits" className="text-slate-400 hover:text-white underline underline-offset-2 transition">
-            Vos droits
+            Droits
           </Link>
           {" · "}
           <Link href="/assistant" className="text-slate-400 hover:text-white underline underline-offset-2 transition">
-            Assistant IA
+            Assistant
           </Link>
           {" · "}
           <Link href="/carte" className="text-slate-400 hover:text-white underline underline-offset-2 transition">
-            Carte complète
+            Carte
+          </Link>
+          {" · "}
+          <Link href="/emploi" className="text-slate-400 hover:text-white underline underline-offset-2 transition">
+            Emploi
           </Link>
         </p>
       </main>
