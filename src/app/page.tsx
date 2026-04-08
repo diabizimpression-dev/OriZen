@@ -10,6 +10,86 @@ import {
   Wind, Snowflake, Sun,
 } from "lucide-react";
 
+// ─── Langues supportées ──────────────────────────────────────────────────────
+
+const LANGS = [
+  { code: "fr", label: "FR", flag: "🇫🇷", name: "Français" },
+  { code: "ar", label: "AR", flag: "🇲🇦", name: "العربية", rtl: true },
+  { code: "en", label: "EN", flag: "🇬🇧", name: "English" },
+  { code: "es", label: "ES", flag: "🇪🇸", name: "Español" },
+] as const;
+type LangCode = "fr" | "ar" | "en" | "es";
+
+// Textes traduits statiquement (les chaînes courtes de l'UI)
+const UI_STRINGS: Record<LangCode, {
+  title: string;
+  subtitle: string;
+  urgency: string;
+  sleep: string; sleepSub: string;
+  eat: string; eatSub: string;
+  health: string; healthSub: string;
+  talk: string; talkSub: string;
+  nearby: string;
+  seeMap: string;
+  lastSeen: string;
+  continue: string;
+  callNow: string;
+  papers: string; minor: string; violence: string; finance: string;
+}> = {
+  fr: {
+    title: "De quoi avez-vous besoin ?",
+    subtitle: "structures trouvées à moins de 5 km",
+    urgency: "Urgence — Danger immédiat",
+    sleep: "Dormir", sleepSub: "Hébergement d'urgence",
+    eat: "Manger", eatSub: "Distribution alimentaire",
+    health: "Se soigner", healthSub: "Soins gratuits (PASS)",
+    talk: "Assistant", talkSub: "Aide & conseils IA",
+    nearby: "Proches de vous", seeMap: "Voir la carte →",
+    lastSeen: "Dernière aide consultée", continue: "Continuer →",
+    callNow: "Appeler", papers: "Papiers", minor: "Mineur",
+    violence: "Violence", finance: "Finances",
+  },
+  en: {
+    title: "What do you need?",
+    subtitle: "structures found within 5 km",
+    urgency: "Emergency — Immediate danger",
+    sleep: "Sleep", sleepSub: "Emergency shelter",
+    eat: "Eat", eatSub: "Food distribution",
+    health: "Healthcare", healthSub: "Free care (PASS)",
+    talk: "Assistant", talkSub: "AI help & advice",
+    nearby: "Near you", seeMap: "See map →",
+    lastSeen: "Last help viewed", continue: "Continue →",
+    callNow: "Call", papers: "Papers", minor: "Minor",
+    violence: "Violence", finance: "Finance",
+  },
+  ar: {
+    title: "ماذا تحتاج؟",
+    subtitle: "هيكل موجود في أقل من 5 كم",
+    urgency: "طوارئ — خطر فوري",
+    sleep: "النوم", sleepSub: "إيواء طارئ",
+    eat: "الأكل", eatSub: "توزيع الغذاء",
+    health: "الصحة", healthSub: "رعاية مجانية",
+    talk: "مساعد", talkSub: "مساعدة بالذكاء الاصطناعي",
+    nearby: "قريب منك", seeMap: "عرض الخريطة ←",
+    lastSeen: "آخر مساعدة", continue: "متابعة →",
+    callNow: "اتصل", papers: "أوراق", minor: "قاصر",
+    violence: "عنف", finance: "مالية",
+  },
+  es: {
+    title: "¿Qué necesita?",
+    subtitle: "estructuras encontradas en 5 km",
+    urgency: "Emergencia — Peligro inmediato",
+    sleep: "Dormir", sleepSub: "Albergue de emergencia",
+    eat: "Comer", eatSub: "Distribución alimentaria",
+    health: "Atención médica", healthSub: "Atención gratuita (PASS)",
+    talk: "Asistente", talkSub: "Ayuda con IA",
+    nearby: "Cerca de usted", seeMap: "Ver mapa →",
+    lastSeen: "Última ayuda vista", continue: "Continuar →",
+    callNow: "Llamar", papers: "Papeles", minor: "Menor",
+    violence: "Violencia", finance: "Finanzas",
+  },
+};
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface WeatherData {
@@ -163,6 +243,8 @@ export default function HomePage() {
   const [lastVisit, setLastVisit] = useState<string | null>(null);
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const [sosOpen, setSosOpen] = useState(false);
+  const [lang, setLang] = useState<LangCode>("fr");
+  const [langOpen, setLangOpen] = useState(false);
 
   // Données temps réel
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -175,6 +257,8 @@ export default function HomePage() {
   // 1. Géolocalisation silencieuse
   useEffect(() => {
     setLastVisit(localStorage.getItem("orizen_last_action"));
+    const savedLang = localStorage.getItem("orizen_lang") as LangCode | null;
+    if (savedLang && ["fr", "en", "ar", "es"].includes(savedLang)) setLang(savedLang);
     if (!navigator.geolocation) {
       setCoords({ lat: 48.8566, lng: 2.3522 });
       return;
@@ -237,8 +321,17 @@ export default function HomePage() {
     setTimeout(() => { window.location.href = href; }, 140);
   };
 
+  const switchLang = (l: LangCode) => {
+    setLang(l);
+    setLangOpen(false);
+    localStorage.setItem("orizen_lang", l);
+    // Direction RTL pour l'arabe
+    document.documentElement.dir = l === "ar" ? "rtl" : "ltr";
+  };
+
   // ─── Computed ──────────────────────────────────────────────────────────────
 
+  const t = UI_STRINGS[lang];
   const lastActionData = MAIN_ACTIONS.find((a) => a.id === lastVisit);
   const alertConfig = weather?.alert ? getAlertConfig(weather.alert, weather.temperature) : null;
   const totalStructures = Object.values(structureCounts).reduce((a, b) => a + b, 0);
@@ -324,8 +417,43 @@ export default function HomePage() {
         )}
       </AnimatePresence>
 
+      {/* ── Sélecteur de langue ── */}
+      <div className="w-full px-4 pt-2 flex justify-end relative">
+        <div className="relative">
+          <button
+            onClick={() => setLangOpen((v) => !v)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900/70 border border-slate-800 text-xs text-slate-400 hover:text-white hover:border-slate-600 transition-colors"
+          >
+            <span>{LANGS.find((l) => l.code === lang)?.flag}</span>
+            <span className="font-semibold">{lang.toUpperCase()}</span>
+          </button>
+          <AnimatePresence>
+            {langOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -4, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -4, scale: 0.96 }}
+                transition={{ duration: 0.12 }}
+                className="absolute right-0 top-9 z-30 bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-xl"
+              >
+                {LANGS.map((l) => (
+                  <button
+                    key={l.code}
+                    onClick={() => switchLang(l.code)}
+                    className={`flex items-center gap-2 px-3 py-2 text-xs w-full text-left hover:bg-slate-800 transition-colors ${lang === l.code ? "text-white font-semibold" : "text-slate-400"}`}
+                  >
+                    <span>{l.flag}</span>
+                    <span>{l.name}</span>
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
       {/* ── Bouton urgence ── */}
-      <div className="w-full px-4 pt-3 pb-1">
+      <div className="w-full px-4 pt-2 pb-1">
         <motion.button
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -334,7 +462,7 @@ export default function HomePage() {
           className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-red-600 hover:bg-red-500 active:bg-red-700 font-bold text-base transition-colors shadow-lg shadow-red-900/40"
         >
           <span className="text-xl">🚨</span>
-          Urgence — Danger immédiat
+          {t.urgency}
         </motion.button>
       </div>
 
@@ -356,7 +484,7 @@ export default function HomePage() {
               className="w-full bg-slate-900 border-t border-slate-700 rounded-t-3xl px-5 pt-5 pb-8 max-h-[80vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-bold text-white text-lg">Appel d&apos;urgence</h2>
+                <h2 className="font-bold text-white text-lg">{t.urgency}</h2>
                 <button
                   onClick={() => setSosOpen(false)}
                   className="p-2 rounded-xl hover:bg-slate-800 transition-colors"
@@ -401,11 +529,11 @@ export default function HomePage() {
           className="text-center mb-4 w-full"
         >
           <h1 className="text-2xl font-bold tracking-tight mb-0.5 bg-gradient-to-b from-white to-slate-400 bg-clip-text text-transparent">
-            De quoi avez-vous besoin ?
+            {t.title}
           </h1>
           <p className="text-slate-500 text-xs">
             {totalStructures > 0
-              ? `${totalStructures} structures trouvées à moins de 5 km`
+              ? `${totalStructures} ${t.subtitle}`
               : coords
                 ? "Recherche des structures proches…"
                 : "Localisation en cours…"}
@@ -505,13 +633,10 @@ export default function HomePage() {
             >
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  Proches de vous
+                  {t.nearby}
                 </h2>
-                <Link
-                  href="/carte"
-                  className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
-                >
-                  Voir la carte →
+                <Link href="/carte" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
+                  {t.seeMap}
                 </Link>
               </div>
 
@@ -585,14 +710,14 @@ export default function HomePage() {
             >
               <Clock size={14} className="text-slate-500 shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-slate-500">Dernière aide consultée</p>
+                <p className="text-xs text-slate-500">{t.lastSeen}</p>
                 <p className="text-sm font-semibold text-slate-300">{lastActionData.label}</p>
               </div>
               <button
                 onClick={() => handleAction(lastActionData.id, lastActionData.href)}
                 className="text-xs text-indigo-400 font-bold hover:text-indigo-300 transition whitespace-nowrap"
               >
-                Continuer →
+                {t.continue}
               </button>
             </motion.div>
           )}
