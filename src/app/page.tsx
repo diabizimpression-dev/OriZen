@@ -12,6 +12,11 @@ import {
 import dynamic from "next/dynamic";
 
 const PushNotifications = dynamic(() => import("@/components/PushNotifications"), { ssr: false });
+const QuickExit = dynamic(() => import("@/components/QuickExit"), { ssr: false });
+const DiscreetToggle = dynamic(
+  () => import("@/components/DiscreetMode").then((m) => m.DiscreetToggle),
+  { ssr: false }
+);
 
 // ─── Langues supportées ──────────────────────────────────────────────────────
 
@@ -365,6 +370,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#020617] text-white flex flex-col">
       <PushNotifications />
+      <QuickExit />
 
       {/* ── Barre contexte : localisation + météo ── */}
       <AnimatePresence>
@@ -431,8 +437,9 @@ export default function HomePage() {
         )}
       </AnimatePresence>
 
-      {/* ── Sélecteur de langue ── */}
-      <div className="w-full px-4 pt-2 flex justify-end relative">
+      {/* ── Barre top : mode discret + langue ── */}
+      <div className="w-full px-4 pt-2 flex justify-end items-center gap-1 relative">
+        <DiscreetToggle />
         <div className="relative">
           <button
             onClick={() => setLangOpen((v) => !v)}
