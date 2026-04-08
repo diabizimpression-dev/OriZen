@@ -265,6 +265,10 @@ export default function HomePage() {
     ccasName: string; ccasPhone: string | null; ccasAddress: string | null;
     commune: string; mairiePhone: string | null; rightsSummary: string;
   } | null>(null);
+  const [guichets, setGuichets] = useState<Array<{
+    id: string; name: string; typeLabel: string; address: string;
+    phone: string | null; color: string; distance_m: number | null; note: string;
+  }>>([]);
 
   // 1. Géolocalisation silencieuse
   useEffect(() => {
@@ -301,6 +305,12 @@ export default function HomePage() {
     fetch(`/api/ccas?lat=${lat}&lng=${lng}`)
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data?.ok && data.ccas) setCcas(data.ccas); })
+      .catch(() => {});
+
+    // Guichets officiels : CAF, CPAM, Préfecture
+    fetch(`/api/guichets?lat=${lat}&lng=${lng}&type=tous`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.guichets) setGuichets(data.guichets.slice(0, 4)); })
       .catch(() => {});
 
     // Structures proches — Overpass/OSM en parallèle
@@ -715,6 +725,48 @@ export default function HomePage() {
                     </motion.div>
                   );
                 })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Guichets officiels : CAF · CPAM · Préfecture ── */}
+        <AnimatePresence>
+          {guichets.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.48 }}
+              className="w-full mb-3"
+            >
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                Guichets officiels
+              </h2>
+              <div className="grid grid-cols-2 gap-2">
+                {guichets.map((g) => (
+                  <div
+                    key={g.id}
+                    className="p-2.5 rounded-xl border"
+                    style={{ background: g.color + "10", borderColor: g.color + "30" }}
+                  >
+                    <p className="text-xs font-bold truncate" style={{ color: g.color }}>{g.typeLabel}</p>
+                    <p className="text-xs text-slate-400 truncate mt-0.5">{g.name}</p>
+                    {g.distance_m != null && (
+                      <p className="text-xs text-slate-600 mt-0.5">
+                        {g.distance_m < 1000 ? `${g.distance_m} m` : `${(g.distance_m / 1000).toFixed(1)} km`}
+                      </p>
+                    )}
+                    {g.phone && (
+                      <a
+                        href={`tel:${g.phone.replace(/\s/g, "")}`}
+                        className="flex items-center gap-1 text-xs mt-1 font-semibold"
+                        style={{ color: g.color }}
+                      >
+                        <Phone size={9} /> {g.phone}
+                      </a>
+                    )}
+                  </div>
+                ))}
               </div>
             </motion.div>
           )}
