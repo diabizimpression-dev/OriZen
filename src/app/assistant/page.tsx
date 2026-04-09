@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, Utensils, HeartPulse, AlertTriangle, FileText,
-  ArrowLeft, Send, Phone, MapPin, Mic, MicOff, Loader2
+  ArrowLeft, Send, Phone, MapPin, Mic, MicOff, Loader2, Share2, CheckCircle2
 } from "lucide-react";
 
 // =====================================================
@@ -186,6 +186,33 @@ export default function AssistantPage() {
   };
 
   const lastAssistantMsg = [...messages].reverse().find((m) => m.role === "assistant");
+  const [planShared, setPlanShared] = useState(false);
+  const [planUrl, setPlanUrl] = useState<string | null>(null);
+
+  const sharePlan = async () => {
+    const assistantMsgs = messages.filter((m) => m.role === "assistant");
+    if (assistantMsgs.length === 0) return;
+    try {
+      const res = await fetch("/api/plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scenario: activeSituation ?? "urgence",
+          title: messages.find((m) => m.role === "user")?.content.slice(0, 80) ?? "Mon plan OriZen",
+          steps: assistantMsgs.map((m) => m.content).slice(0, 5),
+          contacts: [],
+        }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        setPlanUrl(data.url);
+        setPlanShared(true);
+        if (navigator.share) navigator.share({ title: "Mon plan OriZen", url: data.url });
+        else await navigator.clipboard.writeText(data.url);
+        setTimeout(() => setPlanShared(false), 3000);
+      }
+    } catch { /* silencieux */ }
+  };
 
   return (
     <div className="flex flex-col h-screen bg-[#020617] text-white">
@@ -341,6 +368,13 @@ export default function AssistantPage() {
                       <Phone size={12} />
                       Appeler le 115
                     </a>
+                    <button
+                      onClick={sharePlan}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-violet-600/20 border border-violet-500/30 text-violet-300 text-xs font-medium whitespace-nowrap hover:bg-violet-600/30 transition-colors shrink-0"
+                    >
+                      {planShared ? <CheckCircle2 size={12} /> : <Share2 size={12} />}
+                      {planShared ? (planUrl ? "Lien copié !" : "Partagé !") : "Partager ce plan"}
+                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
