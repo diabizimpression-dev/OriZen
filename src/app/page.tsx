@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { parseOpeningHours } from "@/lib/openingHours";
+import { Analytics, useTrack } from "@/components/Analytics";
 
 const PushNotifications = dynamic(() => import("@/components/PushNotifications"), { ssr: false });
 const QuickExit = dynamic(() => import("@/components/QuickExit"), { ssr: false });
@@ -249,6 +250,7 @@ function getAlertConfig(alert: WeatherData["alert"], temp: number) {
 // ─── Composant principal ─────────────────────────────────────────────────────
 
 export default function HomePage() {
+  const track = useTrack();
   const [lastVisit, setLastVisit] = useState<string | null>(null);
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const [sosOpen, setSosOpen] = useState(false);
@@ -347,6 +349,7 @@ export default function HomePage() {
   const handleAction = (actionId: string, href: string) => {
     setActiveAction(actionId);
     localStorage.setItem("orizen_last_action", actionId);
+    track({ action: "scenario-click", scenario: actionId });
     setTimeout(() => { window.location.href = href; }, 140);
   };
 
@@ -380,6 +383,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#020617] text-white flex flex-col">
+      <Analytics page="/" />
       <PushNotifications />
       <QuickExit />
 
@@ -490,7 +494,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           whileTap={{ scale: 0.97 }}
-          onClick={() => setSosOpen(true)}
+          onClick={() => { setSosOpen(true); track({ action: "sos-opened" }); }}
           className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-red-600 hover:bg-red-500 active:bg-red-700 font-bold text-base transition-colors shadow-lg shadow-red-900/40"
         >
           <span className="text-xl">🚨</span>

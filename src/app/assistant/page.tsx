@@ -6,6 +6,7 @@ import {
   Home, Utensils, HeartPulse, AlertTriangle, FileText,
   ArrowLeft, Send, Phone, MapPin, Mic, MicOff, Loader2, Share2, CheckCircle2
 } from "lucide-react";
+import { Analytics } from "@/components/Analytics";
 
 // =====================================================
 // OriZen Assistant — Interface boutons → chat conditionnel
@@ -216,6 +217,7 @@ export default function AssistantPage() {
 
   return (
     <div className="flex flex-col h-screen bg-[#020617] text-white">
+      <Analytics page="/assistant" action={activeSituation ? "situation-selected" : undefined} scenario={activeSituation ?? undefined} />
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-slate-800/70 backdrop-blur-sm bg-[#020617]/90 z-10">
         <button
