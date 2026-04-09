@@ -852,6 +852,10 @@ export default function HomePage() {
           <Link href="/emploi" className="text-slate-400 hover:text-white underline underline-offset-2 transition">
             Emploi
           </Link>
+          {" · "}
+          <Link href="/service-civique" className="text-slate-400 hover:text-white underline underline-offset-2 transition">
+            Service Civique
+          </Link>
         </p>
       </main>
     </div>
