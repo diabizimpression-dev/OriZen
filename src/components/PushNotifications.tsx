@@ -95,7 +95,7 @@ export default function PushNotifications() {
         return;
       }
 
-      const applicationServerKey = urlBase64ToUint8Array(keyData.vapidPublicKey);
+      const applicationServerKey = urlBase64ToUint8Array(keyData.vapidPublicKey).buffer as ArrayBuffer;
       const subscription = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey,

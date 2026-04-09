@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       });
     }
 
-    for (const [endpoint, sub] of subscriptions) {
+    for (const [endpoint, sub] of Array.from(subscriptions.entries())) {
       try {
         // Envoi via Web Push Protocol (manuel, sans dépendance web-push)
         // En production, utiliser la lib `web-push` ou l'API native

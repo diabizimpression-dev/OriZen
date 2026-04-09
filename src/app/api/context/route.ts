@@ -76,8 +76,8 @@ export async function GET(request: Request) {
         : null;
 
       // Détection alerte Plan gouvernemental
-      let alert: typeof weather extends null ? never : NonNullable<typeof weather>["alert"] = null;
-      if (temp <= 0 || apparent != null && apparent <= -2) alert = "grand_froid";
+      let alert: "grand_froid" | "canicule" | "neige" | "vent" | null = null;
+      if (temp <= 0 || (apparent != null && apparent <= -2)) alert = "grand_froid";
       else if (temp < 5) alert = "grand_froid";
       else if (temp >= 35) alert = "canicule";
       else if (code >= 71 && code <= 77) alert = "neige";

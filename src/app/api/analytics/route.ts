@@ -37,9 +37,9 @@ function pruneOld() {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - 7);
   const cutoffStr = cutoff.toISOString().slice(0, 13);
-  for (const [key, evt] of events) {
+  Array.from(events.entries()).forEach(([key, evt]) => {
     if (evt.hour < cutoffStr) events.delete(key);
-  }
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -89,14 +89,14 @@ export async function GET(req: NextRequest) {
   const actionStats = new Map<string, number>();
   const scenarioStats = new Map<string, number>();
 
-  for (const evt of events.values()) {
+  Array.from(events.values()).forEach((evt) => {
     pageStats.set(evt.page, (pageStats.get(evt.page) ?? 0) + evt.count);
     if (evt.action) actionStats.set(evt.action, (actionStats.get(evt.action) ?? 0) + evt.count);
     if (evt.scenario) scenarioStats.set(evt.scenario, (scenarioStats.get(evt.scenario) ?? 0) + evt.count);
-  }
+  });
 
   const sortDesc = (m: Map<string, number>) =>
-    [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 20);
+    Array.from(m.entries()).sort((a, b) => b[1] - a[1]).slice(0, 20);
 
   return NextResponse.json({
     ok: true,

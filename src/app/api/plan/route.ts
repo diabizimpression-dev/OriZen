@@ -20,9 +20,9 @@ const plans = new Map<string, PlanData>();
 // Nettoyage TTL 24h
 function purgeOld() {
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-  for (const [id, plan] of plans) {
+  Array.from(plans.entries()).forEach(([id, plan]) => {
     if (plan.createdAt < cutoff) plans.delete(id);
-  }
+  });
 }
 
 function generateId(): string {
