@@ -330,7 +330,7 @@ export default function HomePage() {
           const t = types[i];
           counts[t] = res.value.count || 0;
           res.value.structures.slice(0, 2).forEach((s: NearbyStructure) =>
-            all.push({ ...s, type: t })
+            all.push({ ...s, id: `${t}_${s.id}`, type: t })
           );
         }
       });
