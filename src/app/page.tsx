@@ -10,6 +10,7 @@ import {
   Wind, Snowflake, Sun,
 } from "lucide-react";
 import dynamic from "next/dynamic";
+import { parseOpeningHours } from "@/lib/openingHours";
 
 const PushNotifications = dynamic(() => import("@/components/PushNotifications"), { ssr: false });
 const QuickExit = dynamic(() => import("@/components/QuickExit"), { ssr: false });
@@ -708,9 +709,16 @@ export default function HomePage() {
                           {distKm && (
                             <span className="text-xs text-slate-500">{distKm}</span>
                           )}
-                          {s.open && (
-                            <span className="text-xs text-slate-600">{s.open}</span>
-                          )}
+                          {(() => {
+                            const oh = parseOpeningHours(s.open);
+                            if (oh.isOpen === null && !s.open) return null;
+                            return (
+                              <span className="text-xs font-medium flex items-center gap-1" style={{ color: oh.color }}>
+                                <Clock size={9} />
+                                {oh.label}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </div>
                       {s.phone && (

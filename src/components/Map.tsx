@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { ArrowLeft, Navigation, Phone, MapPin, FileText, AlertCircle, CheckCircle, Bus, Loader2, FootprintsIcon } from "lucide-react";
+import { ArrowLeft, Navigation, Phone, MapPin, FileText, AlertCircle, CheckCircle, Bus, Loader2, FootprintsIcon, Clock } from "lucide-react";
+import { parseOpeningHours } from "@/lib/openingHours";
 
 const DefaultIcon = L.icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -209,9 +210,18 @@ export default function Map({ besoin = "tous" }: MapProps) {
                 )}
 
                 {/* Horaires */}
-                {s.open && (
-                  <p className="text-xs text-green-700 font-medium mb-2">{s.open}</p>
-                )}
+                {(() => {
+                  const status = parseOpeningHours(s.open);
+                  if (status.isOpen === null && !s.open) return null;
+                  return (
+                    <div className="mb-2 flex items-center gap-1.5">
+                      <Clock size={10} style={{ color: status.color }} />
+                      <span className="text-xs font-medium" style={{ color: status.color }}>
+                        {status.label}
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 {/* Documents à apporter */}
                 {s.documents && s.documents.length > 0 && (
