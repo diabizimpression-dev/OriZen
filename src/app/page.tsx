@@ -382,358 +382,271 @@ export default function HomePage() {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white flex flex-col">
+    <div className="min-h-screen bg-[#030712] text-white flex flex-col" dir={lang === "ar" ? "rtl" : "ltr"}>
       <Analytics page="/" />
       <PushNotifications />
       <QuickExit />
 
-      {/* ── Barre contexte : localisation + météo ── */}
-      <AnimatePresence>
-        {contextLoaded && (location || weather) && (
-          <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full px-4 pt-3"
-          >
-            <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-900/70 border border-slate-800">
-              {location?.commune ? (
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <MapPin size={11} className="text-slate-500 shrink-0" />
-                  <span className="text-xs text-slate-400 truncate">
-                    {location.commune}
-                    {location.postcode ? ` · ${location.postcode}` : ""}
-                    {location.departement ? ` · ${location.departement}` : ""}
-                  </span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5">
-                  <MapPin size={11} className="text-slate-600 shrink-0" />
-                  <span className="text-xs text-slate-600">Localisation…</span>
-                </div>
-              )}
-              {weather && (
-                <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-                  <span className="text-sm">{weatherIcon(weather.weathercode)}</span>
-                  <span className="text-xs font-bold text-slate-200">{weather.temperature}°C</span>
-                  {weather.apparent_temperature != null &&
-                    weather.apparent_temperature !== weather.temperature && (
-                      <span className="text-xs text-slate-500">
-                        ressenti {weather.apparent_temperature}°
-                      </span>
-                    )}
-                </div>
-              )}
+      {/* ══ HEADER compact ══ */}
+      <header className="flex items-center justify-between px-4 pt-safe pt-3 pb-2">
+        {/* Localisation + météo */}
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {location?.commune ? (
+            <div className="flex items-center gap-1.5 min-w-0">
+              <MapPin size={11} className="text-slate-500 shrink-0" />
+              <span className="text-xs text-slate-400 truncate font-medium">
+                {location.commune}{location.postcode ? ` ${location.postcode}` : ""}
+              </span>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          ) : (
+            <span className="text-xs text-slate-600">Localisation…</span>
+          )}
+          {weather && (
+            <span className="text-xs text-slate-400 shrink-0">
+              {weatherIcon(weather.weathercode)} {weather.temperature}°C
+            </span>
+          )}
+        </div>
+        {/* Langue + discret */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <DiscreetToggle />
+          <div className="relative">
+            <button
+              onClick={() => setLangOpen((v) => !v)}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-slate-400 hover:text-white transition-colors"
+            >
+              <span>{LANGS.find((l) => l.code === lang)?.flag}</span>
+              <span className="font-semibold">{lang.toUpperCase()}</span>
+            </button>
+            <AnimatePresence>
+              {langOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  transition={{ duration: 0.1 }}
+                  className="absolute right-0 top-8 z-30 bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-2xl"
+                >
+                  {LANGS.map((l) => (
+                    <button key={l.code} onClick={() => switchLang(l.code)}
+                      className={`flex items-center gap-2 px-3 py-2 text-xs w-full text-left hover:bg-slate-800 ${lang === l.code ? "text-white font-bold" : "text-slate-400"}`}>
+                      <span>{l.flag}</span><span>{l.name}</span>
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </header>
 
-      {/* ── Alerte Plan gouvernemental (Grand Froid / Canicule / Neige) ── */}
+      {/* ══ ALERTE météo ══ */}
       <AnimatePresence>
         {alertConfig && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="w-full px-4 pt-2"
-          >
-            <div
-              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold border"
-              style={{
-                background: alertConfig.bg,
-                borderColor: alertConfig.border,
-                color: alertConfig.color,
-              }}
-            >
-              <Thermometer size={13} className="shrink-0" />
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden px-4">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border mb-2"
+              style={{ background: alertConfig.bg, borderColor: alertConfig.border, color: alertConfig.color }}>
+              <Thermometer size={12} className="shrink-0" />
               <span>{alertConfig.text}</span>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── Barre top : mode discret + langue ── */}
-      <div className="w-full px-4 pt-2 flex justify-end items-center gap-1 relative">
-        <DiscreetToggle />
-        <div className="relative">
-          <button
-            onClick={() => setLangOpen((v) => !v)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900/70 border border-slate-800 text-xs text-slate-400 hover:text-white hover:border-slate-600 transition-colors"
-          >
-            <span>{LANGS.find((l) => l.code === lang)?.flag}</span>
-            <span className="font-semibold">{lang.toUpperCase()}</span>
-          </button>
-          <AnimatePresence>
-            {langOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -4, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -4, scale: 0.96 }}
-                transition={{ duration: 0.12 }}
-                className="absolute right-0 top-9 z-30 bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-xl"
-              >
-                {LANGS.map((l) => (
-                  <button
-                    key={l.code}
-                    onClick={() => switchLang(l.code)}
-                    className={`flex items-center gap-2 px-3 py-2 text-xs w-full text-left hover:bg-slate-800 transition-colors ${lang === l.code ? "text-white font-semibold" : "text-slate-400"}`}
-                  >
-                    <span>{l.flag}</span>
-                    <span>{l.name}</span>
-                  </button>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      {/* ── Bouton urgence ── */}
-      <div className="w-full px-4 pt-2 pb-1">
-        <motion.button
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={() => { setSosOpen(true); track({ action: "sos-opened" }); }}
-          className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-red-600 hover:bg-red-500 active:bg-red-700 font-bold text-base transition-colors shadow-lg shadow-red-900/40"
-        >
-          <span className="text-xl">🚨</span>
-          {t.urgency}
-        </motion.button>
-      </div>
-
-      {/* ── Modale SOS ── */}
+      {/* ══ MODALE SOS fullscreen ══ */}
       <AnimatePresence>
         {sosOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end"
-            onClick={() => setSosOpen(false)}
-          >
-            <motion.div
-              initial={{ y: 80, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 80, opacity: 0 }}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col"
+            onClick={() => setSosOpen(false)}>
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full bg-slate-900 border-t border-slate-700 rounded-t-3xl px-5 pt-5 pb-8 max-h-[80vh] overflow-y-auto"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-bold text-white text-lg">{t.urgency}</h2>
-                <button
-                  onClick={() => setSosOpen(false)}
-                  className="p-2 rounded-xl hover:bg-slate-800 transition-colors"
-                >
+              className="mt-auto bg-[#0a0f1e] border-t border-red-900/50 rounded-t-3xl px-5 pt-6 pb-10 max-h-[88vh] overflow-y-auto">
+              <div className="w-10 h-1 bg-slate-700 rounded-full mx-auto mb-5" />
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h2 className="font-bold text-white text-xl">Urgence</h2>
+                  <p className="text-xs text-red-400">Numéros gratuits · 24h/24</p>
+                </div>
+                <button onClick={() => setSosOpen(false)} className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700">
                   <X size={18} className="text-slate-400" />
                 </button>
               </div>
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-3">
                 {SOS_NUMBERS.map((s) => (
-                  <a
-                    key={s.number}
-                    href={`tel:${s.number}`}
-                    className="flex items-center justify-between p-4 rounded-2xl bg-red-950/60 border border-red-800/50 hover:bg-red-900/50 transition-colors"
-                  >
+                  <a key={s.number} href={`tel:${s.number}`}
+                    className="flex items-center justify-between p-4 rounded-2xl bg-red-950/40 border border-red-800/40 active:scale-98 transition-all">
                     <div>
-                      <p className="font-bold text-white">{s.label}</p>
-                      <p className="text-xs text-slate-400">{s.desc}</p>
+                      <p className="font-bold text-white text-sm">{s.label}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{s.desc}</p>
                     </div>
-                    <div className="flex items-center gap-2 text-red-400">
-                      <Phone size={15} />
-                      <span className="font-bold text-lg">{s.number}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-2xl text-red-400">{s.number}</span>
+                      <div className="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center">
+                        <Phone size={16} className="text-white" />
+                      </div>
                     </div>
                   </a>
                 ))}
               </div>
-              <p className="text-center text-xs text-slate-600 mt-4">
-                Tous ces numéros sont gratuits · 24h/24
-              </p>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── Contenu principal ── */}
-      <main className="flex-1 flex flex-col items-center px-4 py-3 max-w-lg mx-auto w-full">
+      {/* ══ MAIN ══ */}
+      <main className="flex-1 flex flex-col px-4 pb-6 max-w-lg mx-auto w-full">
 
-        {/* Titre + compteur live */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="text-center mb-4 w-full"
+        {/* ── Bouton URGENCE ── */}
+        <motion.button
+          initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => { setSosOpen(true); track({ action: "sos-opened" }); }}
+          className="w-full flex items-center justify-between px-5 rounded-2xl font-bold text-sm transition-all mb-4 shadow-lg shadow-red-950/50 border border-red-700/60"
+          style={{ background: "linear-gradient(135deg,#7f1d1d,#991b1b)", height: "56px" }}
         >
-          <h1 className="text-2xl font-bold tracking-tight mb-0.5 bg-gradient-to-b from-white to-slate-400 bg-clip-text text-transparent">
-            {t.title}
-          </h1>
-          <p className="text-slate-500 text-xs">
-            {totalStructures > 0
-              ? `${totalStructures} ${t.subtitle}`
-              : coords
-                ? "Recherche des structures proches…"
-                : "Localisation en cours…"}
+          <div className="flex items-center gap-3">
+            <span className="text-lg">🚨</span>
+            <span>{t.urgency}</span>
+          </div>
+          <span className="text-red-300 text-xs font-normal">15 · 17 · 115 →</span>
+        </motion.button>
+
+        {/* ── Titre ── */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 }} className="mb-4">
+          <h1 className="text-[22px] font-bold tracking-tight text-white leading-tight">{t.title}</h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {totalStructures > 0 ? `${totalStructures} ${t.subtitle}` : coords ? "Recherche…" : "Localisation…"}
           </p>
         </motion.div>
 
-        {/* ── Grid 2×2 principal ── */}
-        <div className="grid grid-cols-2 gap-3 w-full mb-3">
+        {/* ══ ACTION LAUNCHER — full width, 68px, 1-hand ══ */}
+        <div className="flex flex-col gap-2.5 mb-5">
           {MAIN_ACTIONS.map((action, i) => {
             const Icon = action.icon;
             const isActive = activeAction === action.id;
-            const count = structureCounts[action.id];
+            const count = structureCounts[action.id as keyof typeof structureCounts];
             return (
               <motion.button
                 key={action.id}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.08 + i * 0.06 }}
-                whileTap={{ scale: 0.95 }}
+                initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.08 + i * 0.05 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => handleAction(action.id, action.href)}
-                className="relative flex flex-col items-start p-4 rounded-2xl border transition-all text-left group overflow-hidden"
+                className="w-full flex items-center justify-between px-4 rounded-2xl border transition-all text-left"
                 style={{
-                  background: isActive ? action.color + "30" : action.bg,
-                  borderColor: isActive ? action.color : action.border,
+                  height: "68px",
+                  background: isActive ? action.color + "25" : action.bg,
+                  borderColor: isActive ? action.color + "80" : action.border,
                 }}
               >
-                {/* Icône + badge count */}
-                <div className="flex items-start justify-between w-full mb-2.5">
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
-                    style={{ background: action.color + "22" }}
-                  >
-                    <Icon size={18} style={{ color: action.color }} />
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: action.color + "20" }}>
+                    <Icon size={20} style={{ color: action.color }} />
                   </div>
+                  <div>
+                    <p className="font-bold text-[15px] text-white leading-tight">{action.label}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{action.sublabel}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
                   {count != null && count > 0 && (
-                    <span
-                      className="text-xs font-bold px-1.5 py-0.5 rounded-lg"
-                      style={{ background: action.color + "22", color: action.color }}
-                    >
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                      style={{ background: action.color + "25", color: action.color }}>
                       {count}
                     </span>
                   )}
+                  {action.urgence && (
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">
+                      {action.urgence}
+                    </span>
+                  )}
+                  <span className="text-slate-600 text-lg">›</span>
                 </div>
-
-                <p className="font-bold text-sm leading-tight" style={{ color: action.color }}>
-                  {action.label}
-                </p>
-                <p className="text-xs text-slate-400 mt-0.5 leading-tight">{action.sublabel}</p>
-
-                {/* Numéro urgence si applicable */}
-                {action.urgence && (
-                  <p
-                    className="text-xs mt-1.5 font-semibold"
-                    style={{ color: action.color + "bb" }}
-                  >
-                    {action.urgence} →
-                  </p>
-                )}
               </motion.button>
             );
           })}
         </div>
 
-        {/* ── Actions supplémentaires (4 scénarios bonus) ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.33 }}
-          className="w-full grid grid-cols-4 gap-2 mb-4"
-        >
+        {/* ── Scénarios secondaires (chips horizontaux) ── */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.32 }}
+          className="flex gap-2 overflow-x-auto pb-1 mb-5 scrollbar-hide">
           {EXTRA_ACTIONS.map((a) => {
             const Icon = a.icon;
             return (
-              <button
-                key={a.id}
-                onClick={() => {
-                  localStorage.setItem("orizen_last_action", a.id);
-                  window.location.href = a.href;
-                }}
-                className="flex flex-col items-center gap-1 py-2.5 rounded-xl border border-slate-800 bg-slate-900/50 hover:bg-slate-800/50 transition-colors"
-              >
-                <Icon size={15} style={{ color: a.color }} />
-                <span className="text-xs text-slate-400 font-medium">{a.label}</span>
+              <button key={a.id}
+                onClick={() => { localStorage.setItem("orizen_last_action", a.id); window.location.href = a.href; }}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-full border border-slate-800 bg-slate-900/60 hover:border-slate-600 transition-colors shrink-0">
+                <Icon size={13} style={{ color: a.color }} />
+                <span className="text-xs text-slate-400 font-medium whitespace-nowrap">{a.label}</span>
               </button>
             );
           })}
+          <Link href="/vault"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-full border border-slate-800 bg-slate-900/60 hover:border-slate-600 transition-colors shrink-0">
+            <span className="text-xs">🔒</span>
+            <span className="text-xs text-slate-400 font-medium whitespace-nowrap">Coffre</span>
+          </Link>
+          <Link href="/droits"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-full border border-slate-800 bg-slate-900/60 hover:border-slate-600 transition-colors shrink-0">
+            <span className="text-xs">⚖️</span>
+            <span className="text-xs text-slate-400 font-medium whitespace-nowrap">Droits</span>
+          </Link>
         </motion.div>
 
-        {/* ── Structures à proximité (données OSM temps réel) ── */}
+        {/* ══ IMMEDIATE RESULTS — top 3 structures avec OUVERT/FERMÉ ══ */}
         <AnimatePresence>
           {nearbyStructures.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.42 }}
-              className="w-full mb-4"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  {t.nearby}
-                </h2>
-                <Link href="/carte" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
-                  {t.seeMap}
-                </Link>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.38 }}
+              className="mb-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t.nearby}</span>
+                <Link href="/carte" className="text-xs text-indigo-400 font-medium hover:text-indigo-300">{t.seeMap}</Link>
               </div>
-
               <div className="flex flex-col gap-2">
                 {nearbyStructures.map((s, i) => {
                   const color = typeColor[s.type] ?? "#8B5CF6";
-                  const label = typeLabel[s.type] ?? s.type;
-                  const distKm =
-                    s.distance_m != null
-                      ? s.distance_m < 1000
-                        ? `${s.distance_m} m`
-                        : `${(s.distance_m / 1000).toFixed(1)} km`
-                      : null;
-
+                  const oh = parseOpeningHours(s.open);
+                  const dist = s.distance_m != null
+                    ? s.distance_m < 1000 ? `${s.distance_m} m` : `${(s.distance_m / 1000).toFixed(1)} km`
+                    : null;
                   return (
-                    <motion.div
-                      key={s.id}
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.44 + i * 0.07 }}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-slate-800 bg-slate-900/60"
-                    >
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                        style={{ background: color + "22" }}
-                      >
-                        <Navigation size={14} style={{ color }} />
+                    <motion.div key={s.id}
+                      initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.42 + i * 0.06 }}
+                      className="flex items-center gap-3 p-3.5 rounded-2xl border border-slate-800/80 bg-slate-900/50">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                        style={{ background: color + "20" }}>
+                        <Navigation size={15} style={{ color }} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white truncate">{s.name}</p>
-                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                          <span
-                            className="text-xs px-1.5 py-0.5 rounded"
-                            style={{ background: color + "22", color }}
-                          >
-                            {label}
-                          </span>
-                          {distKm && (
-                            <span className="text-xs text-slate-500">{distKm}</span>
+                        <p className="text-sm font-semibold text-white truncate">{s.name}</p>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          {dist && <span className="text-xs text-slate-500">{dist}</span>}
+                          {oh.isOpen !== null && (
+                            <span className="text-xs font-semibold px-1.5 py-0.5 rounded-md"
+                              style={{ background: oh.color + "20", color: oh.color }}>
+                              {oh.isOpen ? "OUVERT" : "FERMÉ"}
+                            </span>
                           )}
-                          {(() => {
-                            const oh = parseOpeningHours(s.open);
-                            if (oh.isOpen === null && !s.open) return null;
-                            return (
-                              <span className="text-xs font-medium flex items-center gap-1" style={{ color: oh.color }}>
-                                <Clock size={9} />
-                                {oh.label}
-                              </span>
-                            );
-                          })()}
                         </div>
                       </div>
-                      {s.phone && (
-                        <a
-                          href={`tel:${s.phone}`}
-                          className="shrink-0 p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Phone size={13} className="text-slate-300" />
-                        </a>
-                      )}
+                      <div className="flex gap-1.5 shrink-0">
+                        <Link href={`/carte?besoin=${s.type}`}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors"
+                          style={{ background: color + "20", color }}>
+                          <MapPin size={11} /> Y aller
+                        </Link>
+                        {s.phone && (
+                          <a href={`tel:${s.phone}`}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">
+                            <Phone size={11} />
+                          </a>
+                        )}
+                      </div>
                     </motion.div>
                   );
                 })}
@@ -742,38 +655,21 @@ export default function HomePage() {
           )}
         </AnimatePresence>
 
-        {/* ── Guichets officiels : CAF · CPAM · Préfecture ── */}
+        {/* ── Guichets officiels ── */}
         <AnimatePresence>
           {guichets.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.48 }}
-              className="w-full mb-3"
-            >
-              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                Guichets officiels
-              </h2>
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+              className="mb-5">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Guichets officiels</span>
               <div className="grid grid-cols-2 gap-2">
                 {guichets.map((g) => (
-                  <div
-                    key={g.id}
-                    className="p-2.5 rounded-xl border"
-                    style={{ background: g.color + "10", borderColor: g.color + "30" }}
-                  >
-                    <p className="text-xs font-bold truncate" style={{ color: g.color }}>{g.typeLabel}</p>
-                    <p className="text-xs text-slate-400 truncate mt-0.5">{g.name}</p>
-                    {g.distance_m != null && (
-                      <p className="text-xs text-slate-600 mt-0.5">
-                        {g.distance_m < 1000 ? `${g.distance_m} m` : `${(g.distance_m / 1000).toFixed(1)} km`}
-                      </p>
-                    )}
+                  <div key={g.id} className="p-3 rounded-xl border"
+                    style={{ background: g.color + "0c", borderColor: g.color + "25" }}>
+                    <p className="text-xs font-bold" style={{ color: g.color }}>{g.typeLabel}</p>
+                    <p className="text-xs text-slate-500 truncate mt-0.5">{g.name}</p>
                     {g.phone && (
-                      <a
-                        href={`tel:${g.phone.replace(/\s/g, "")}`}
-                        className="flex items-center gap-1 text-xs mt-1 font-semibold"
-                        style={{ color: g.color }}
-                      >
+                      <a href={`tel:${g.phone.replace(/\s/g, "")}`}
+                        className="flex items-center gap-1 text-xs mt-1.5 font-semibold" style={{ color: g.color }}>
                         <Phone size={9} /> {g.phone}
                       </a>
                     )}
@@ -784,83 +680,57 @@ export default function HomePage() {
           )}
         </AnimatePresence>
 
-        {/* ── CCAS local ── */}
+        {/* ── CCAS ── */}
         <AnimatePresence>
           {ccas && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="w-full mb-4 p-3 rounded-xl border border-cyan-800/40 bg-cyan-950/30"
-            >
-              <div className="flex items-start justify-between gap-2 mb-1">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-cyan-400">{ccas.ccasName}</p>
-                  {ccas.ccasAddress && (
-                    <p className="text-xs text-slate-500 truncate">{ccas.ccasAddress}</p>
-                  )}
-                  <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{ccas.rightsSummary.slice(0, 100)}…</p>
-                </div>
-                {(ccas.ccasPhone ?? ccas.mairiePhone) && (
-                  <a
-                    href={`tel:${(ccas.ccasPhone ?? ccas.mairiePhone)?.replace(/\s/g, "")}`}
-                    className="shrink-0 p-1.5 rounded-lg bg-cyan-900/50 hover:bg-cyan-800/50 transition-colors"
-                  >
-                    <Phone size={13} className="text-cyan-400" />
-                  </a>
-                )}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.55 }}
+              className="mb-5 flex items-center gap-3 p-3.5 rounded-2xl border border-cyan-800/30 bg-cyan-950/20">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-cyan-400">{ccas.ccasName}</p>
+                <p className="text-xs text-slate-500 mt-0.5">Aide locale · 48h</p>
               </div>
-              <p className="text-xs text-cyan-600">Aide d'urgence locale · 48h · mairie</p>
+              {(ccas.ccasPhone ?? ccas.mairiePhone) && (
+                <a href={`tel:${(ccas.ccasPhone ?? ccas.mairiePhone)?.replace(/\s/g, "")}`}
+                  className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-900/40 text-xs font-semibold text-cyan-400">
+                  <Phone size={11} /> Appeler
+                </a>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* ── Continuer la dernière recherche ── */}
+        {/* ── Continuer ── */}
         <AnimatePresence>
           {lastActionData && (
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-800 bg-slate-900/50 mb-4"
-            >
-              <Clock size={14} className="text-slate-500 shrink-0" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="mb-5 flex items-center gap-3 p-3 rounded-xl border border-slate-800 bg-slate-900/40">
+              <Clock size={13} className="text-slate-600 shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-slate-500">{t.lastSeen}</p>
+                <p className="text-xs text-slate-600">{t.lastSeen}</p>
                 <p className="text-sm font-semibold text-slate-300">{lastActionData.label}</p>
               </div>
-              <button
-                onClick={() => handleAction(lastActionData.id, lastActionData.href)}
-                className="text-xs text-indigo-400 font-bold hover:text-indigo-300 transition whitespace-nowrap"
-              >
-                {t.continue}
-              </button>
+              <button onClick={() => handleAction(lastActionData.id, lastActionData.href)}
+                className="text-xs text-indigo-400 font-bold shrink-0">{t.continue}</button>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* ── Footer liens ── */}
-        <p className="text-xs text-slate-600 text-center mt-auto pb-2">
-          <Link href="/droits" className="text-slate-400 hover:text-white underline underline-offset-2 transition">
-            Droits
-          </Link>
-          {" · "}
-          <Link href="/assistant" className="text-slate-400 hover:text-white underline underline-offset-2 transition">
-            Assistant
-          </Link>
-          {" · "}
-          <Link href="/carte" className="text-slate-400 hover:text-white underline underline-offset-2 transition">
-            Carte
-          </Link>
-          {" · "}
-          <Link href="/emploi" className="text-slate-400 hover:text-white underline underline-offset-2 transition">
-            Emploi
-          </Link>
-          {" · "}
-          <Link href="/service-civique" className="text-slate-400 hover:text-white underline underline-offset-2 transition">
-            Service Civique
-          </Link>
-        </p>
+        {/* ── Nav bottom ── */}
+        <nav className="flex justify-around pt-2 border-t border-slate-800/60 mt-auto">
+          {[
+            { href: "/droits", icon: "⚖️", label: "Droits" },
+            { href: "/assistant", icon: "💬", label: "Assistant" },
+            { href: "/carte", icon: "🗺️", label: "Carte" },
+            { href: "/emploi", icon: "💼", label: "Emploi" },
+            { href: "/vault", icon: "🔒", label: "Coffre" },
+          ].map((item) => (
+            <Link key={item.href} href={item.href}
+              className="flex flex-col items-center gap-1 py-2 px-3 rounded-xl hover:bg-slate-800/50 transition-colors">
+              <span className="text-base">{item.icon}</span>
+              <span className="text-[10px] text-slate-500 font-medium">{item.label}</span>
+            </Link>
+          ))}
+        </nav>
       </main>
     </div>
   );
