@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, Utensils, HeartPulse, MessageCircle,
@@ -249,8 +250,31 @@ function getAlertConfig(alert: WeatherData["alert"], temp: number) {
 
 // ─── Composant principal ─────────────────────────────────────────────────────
 
+// ─── Skeleton loader ─────────────────────────────────────────────────────────
+function StructureSkeleton() {
+  return (
+    <div className="flex flex-col gap-2 mb-5">
+      <div className="flex items-center justify-between mb-3">
+        <div className="h-3 w-24 bg-slate-800 rounded-full animate-pulse" />
+        <div className="h-3 w-16 bg-slate-800 rounded-full animate-pulse" />
+      </div>
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="flex items-center gap-3 p-3.5 rounded-2xl border border-slate-800/80 bg-slate-900/50">
+          <div className="w-9 h-9 rounded-xl bg-slate-800 animate-pulse shrink-0" />
+          <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+            <div className="h-3.5 w-3/4 bg-slate-800 rounded-full animate-pulse" />
+            <div className="h-2.5 w-1/3 bg-slate-800/60 rounded-full animate-pulse" />
+          </div>
+          <div className="w-16 h-7 bg-slate-800 rounded-xl animate-pulse shrink-0" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function HomePage() {
   const track = useTrack();
+  const pathname = usePathname();
   const [lastVisit, setLastVisit] = useState<string | null>(null);
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const [sosOpen, setSosOpen] = useState(false);
@@ -367,6 +391,24 @@ export default function HomePage() {
   const lastActionData = MAIN_ACTIONS.find((a) => a.id === lastVisit);
   const alertConfig = weather?.alert ? getAlertConfig(weather.alert, weather.temperature) : null;
   const totalStructures = Object.values(structureCounts).reduce((a, b) => a + b, 0);
+
+  // Time-aware greeting
+  const hour = new Date().getHours();
+  const greeting = lang === "fr"
+    ? (hour < 12 ? "Bonjour" : hour < 18 ? "Bon après-midi" : "Bonsoir")
+    : lang === "ar"
+      ? (hour < 12 ? "صباح الخير" : hour < 18 ? "مساء النور" : "مساء الخير")
+      : lang === "es"
+        ? (hour < 12 ? "Buenos días" : hour < 18 ? "Buenas tardes" : "Buenas noches")
+        : (hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening");
+
+  // Open structures shown first
+  const sortedStructures = [...nearbyStructures].sort((a, b) => {
+    const aOpen = parseOpeningHours(a.open).isOpen ?? false;
+    const bOpen = parseOpeningHours(b.open).isOpen ?? false;
+    if (aOpen !== bOpen) return bOpen ? 1 : -1;
+    return (a.distance_m ?? 9999) - (b.distance_m ?? 9999);
+  });
 
   const typeColor: Record<string, string> = {
     logement: "#6366F1",
@@ -502,23 +544,28 @@ export default function HomePage() {
         {/* ── Bouton URGENCE ── */}
         <motion.button
           initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-          whileTap={{ scale: 0.98 }}
+          whileTap={{ scale: 0.97 }}
           onClick={() => { setSosOpen(true); track({ action: "sos-opened" }); }}
-          className="w-full flex items-center justify-between px-5 rounded-2xl font-bold text-sm transition-all mb-4 shadow-lg shadow-red-950/50 border border-red-700/60"
+          className="relative w-full flex items-center justify-between px-5 rounded-2xl font-bold text-sm mb-4 shadow-lg shadow-red-950/50 border border-red-700/60 overflow-hidden"
           style={{ background: "linear-gradient(135deg,#7f1d1d,#991b1b)", height: "56px" }}
         >
-          <div className="flex items-center gap-3">
+          {/* Pulse ring for visual urgency */}
+          <span className="absolute inset-0 rounded-2xl animate-ping opacity-20 bg-red-500 pointer-events-none" style={{ animationDuration: "2.4s" }} />
+          <div className="relative flex items-center gap-3">
             <span className="text-lg">🚨</span>
             <span>{t.urgency}</span>
           </div>
-          <span className="text-red-300 text-xs font-normal">15 · 17 · 115 →</span>
+          <span className="relative text-red-300 text-xs font-normal">15 · 17 · 115 →</span>
         </motion.button>
 
-        {/* ── Titre ── */}
+        {/* ── Titre avec bonjour contextuel ── */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 }} className="mb-4">
+          <p className="text-xs font-medium text-slate-500 mb-0.5">{greeting}</p>
           <h1 className="text-[22px] font-bold tracking-tight text-white leading-tight">{t.title}</h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            {totalStructures > 0 ? `${totalStructures} ${t.subtitle}` : coords ? "Recherche…" : "Localisation…"}
+            {totalStructures > 0
+              ? `${totalStructures} ${t.subtitle}`
+              : coords ? "Recherche en cours…" : "Localisation…"}
           </p>
         </motion.div>
 
@@ -598,8 +645,11 @@ export default function HomePage() {
         </motion.div>
 
         {/* ══ IMMEDIATE RESULTS — top 3 structures avec OUVERT/FERMÉ ══ */}
+        {/* Skeleton while loading */}
+        {coords && nearbyStructures.length === 0 && !contextLoaded && <StructureSkeleton />}
+
         <AnimatePresence>
-          {nearbyStructures.length > 0 && (
+          {sortedStructures.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.38 }}
               className="mb-5">
               <div className="flex items-center justify-between mb-3">
@@ -607,7 +657,7 @@ export default function HomePage() {
                 <Link href="/carte" className="text-xs text-indigo-400 font-medium hover:text-indigo-300">{t.seeMap}</Link>
               </div>
               <div className="flex flex-col gap-2">
-                {nearbyStructures.map((s, i) => {
+                {sortedStructures.map((s, i) => {
                   const color = typeColor[s.type] ?? "#8B5CF6";
                   const oh = parseOpeningHours(s.open);
                   const dist = s.distance_m != null
@@ -723,13 +773,16 @@ export default function HomePage() {
             { href: "/carte", icon: "🗺️", label: "Carte" },
             { href: "/emploi", icon: "💼", label: "Emploi" },
             { href: "/vault", icon: "🔒", label: "Coffre" },
-          ].map((item) => (
-            <Link key={item.href} href={item.href}
-              className="flex flex-col items-center gap-1 py-2 px-3 rounded-xl hover:bg-slate-800/50 transition-colors">
-              <span className="text-base">{item.icon}</span>
-              <span className="text-[10px] text-slate-500 font-medium">{item.label}</span>
-            </Link>
-          ))}
+          ].map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link key={item.href} href={item.href}
+                className={`flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-colors ${isActive ? "bg-slate-800/70" : "hover:bg-slate-800/40"}`}>
+                <span className="text-base">{item.icon}</span>
+                <span className={`text-[10px] font-medium ${isActive ? "text-white" : "text-slate-500"}`}>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
       </main>
     </div>
