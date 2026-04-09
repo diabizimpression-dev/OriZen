@@ -678,6 +678,18 @@ export default function DroitsPage() {
                         </div>
                       </div>
 
+                      {/* CTA AJ (pour scénarios liés au droit) */}
+                      {["sans-papiers", "violence-familiale", "aide-financiere", "mineur-isole", "logement"].includes(scenario.id) && (
+                        <a
+                          href="/aide-juridictionnelle"
+                          className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-colors border border-violet-500/30"
+                          style={{ background: "#8B5CF615", color: "#a78bfa" }}
+                        >
+                          <Scale size={14} />
+                          Calculer mon aide juridictionnelle →
+                        </a>
+                      )}
+
                       {/* CTA carte */}
                       <a
                         href={`/carte?besoin=${scenario.id}`}
