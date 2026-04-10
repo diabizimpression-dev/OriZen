@@ -444,13 +444,19 @@ export default function HomePage() {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-[#030712] text-white flex flex-col" dir={lang === "ar" ? "rtl" : "ltr"}>
+    <div className="min-h-screen bg-[#030712] text-white flex flex-col relative overflow-x-hidden" dir={lang === "ar" ? "rtl" : "ltr"}>
       <Analytics page="/" />
       <PushNotifications />
 
+      {/* ── Background gradient glow ── */}
+      <div className="fixed inset-0 pointer-events-none z-0" aria-hidden>
+        <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: "800px", height: "500px", background: "radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.22) 0%, rgba(139,92,246,0.08) 40%, transparent 70%)", filter: "blur(1px)" }} />
+        <div style={{ position: "absolute", bottom: 0, left: "10%", width: "300px", height: "300px", background: "radial-gradient(ellipse, rgba(16,185,129,0.06) 0%, transparent 70%)" }} />
+      </div>
+
       {/* ══ HEADER sticky ══ */}
-      <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b border-slate-800/60"
-        style={{ background: "rgba(3,7,18,0.96)", backdropFilter: "blur(20px)" }}>
+      <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b"
+        style={{ background: "rgba(3,7,18,0.85)", backdropFilter: "blur(24px)", borderColor: "rgba(255,255,255,0.07)" }}>
         {/* Logo */}
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
@@ -563,95 +569,125 @@ export default function HomePage() {
       <main className="flex-1 flex flex-col pb-28 max-w-lg mx-auto w-full">
 
         {/* ══ HERO ══ */}
-        <section className="px-5 pt-7 pb-6 text-center">
-          {/* Badge */}
-          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-slate-700/80 text-xs text-slate-400 font-medium mb-5"
-            style={{ background: "rgba(15,23,42,0.8)" }}>
-            🔒 Anonyme &amp; Gratuit
+        <section className="px-5 pt-8 pb-7 text-center relative z-10">
+          {/* Badge pill */}
+          <motion.div initial={{ opacity: 0, y: -8, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 24 }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-6"
+            style={{ background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.3)", color: "#A5B4FC" }}>
+            🔒 Anonyme &amp; Gratuit · Zéro inscription
           </motion.div>
 
           {/* Headline */}
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }}>
-            <h1 className="font-black text-white leading-none mb-1" style={{ fontSize: "clamp(32px,9vw,42px)" }}>
-              {greeting} —
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.07, duration: 0.5 }}>
+            <p className="text-slate-400 text-base font-medium mb-2 tracking-wide">{greeting}</p>
+            <h1 className="font-black text-white leading-[1.05] tracking-tight mb-2"
+              style={{ fontSize: "clamp(38px,10vw,52px)", textShadow: "0 0 60px rgba(99,102,241,0.3)" }}>
+              Trouve de l&apos;aide
             </h1>
-            <h1 className="font-black leading-none mb-4" style={{ fontSize: "clamp(32px,9vw,42px)", color: "#818CF8" }}>
-              de l&apos;aide en 2 clics.
+            <h1 className="font-black leading-[1.05] tracking-tight mb-5"
+              style={{
+                fontSize: "clamp(38px,10vw,52px)",
+                background: "linear-gradient(135deg, #818CF8 0%, #C4B5FD 45%, #A78BFA 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}>
+              en 2 clics.
             </h1>
-            <p className="text-sm text-slate-400 max-w-xs mx-auto leading-relaxed">
+            <p className="text-sm leading-relaxed max-w-[280px] mx-auto"
+              style={{ color: "#64748B" }}>
               {totalStructures > 0
-                ? `${totalStructures} structures trouvées autour de vous — résultats en temps réel`
+                ? `${totalStructures} structures trouvées près de vous · résultats en temps réel`
                 : "Le guide social qui vous oriente immédiatement vers les bonnes structures."}
             </p>
           </motion.div>
 
           {/* CTAs */}
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="mt-6 flex flex-col gap-2.5">
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }} className="mt-7 flex flex-col items-center gap-3">
             <Link href="/assistant"
-              className="flex items-center justify-center gap-2.5 w-full py-4 rounded-2xl font-bold text-sm text-white shadow-lg shadow-indigo-950/60 transition-all active:scale-[0.98]"
-              style={{ background: "linear-gradient(135deg,#4F46E5,#6D28D9)" }}
+              className="flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl font-bold text-[15px] text-white transition-all active:scale-[0.97]"
+              style={{
+                background: "linear-gradient(135deg,#4338CA,#7C3AED)",
+                boxShadow: "0 0 40px rgba(99,102,241,0.45), 0 8px 32px rgba(0,0,0,0.4)",
+                width: "100%", maxWidth: "340px",
+              }}
               onClick={() => track({ action: "hero-cta-assistant" })}>
-              <MessageCircle size={18} />
+              <MessageCircle size={19} />
               Parler à l&apos;assistant OriZen
             </Link>
             <button
-              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold text-sm border border-slate-700 text-slate-400 transition-all active:scale-[0.98] hover:border-slate-500 hover:text-white"
-              style={{ background: "rgba(15,23,42,0.5)" }}
+              className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all active:scale-[0.97]"
+              style={{ color: "#64748B", border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.03)" }}
               onClick={() => {
                 if (navigator.share) navigator.share({ title: "OriZen", text: "Trouve de l'aide en 2 clics", url: window.location.href });
               }}>
-              <Share2 size={15} />
+              <Share2 size={14} />
               Partager cette aide à un proche
             </button>
           </motion.div>
         </section>
 
         {/* ══ SITUATION ══ */}
-        <section className="px-4">
-          <p className="text-[11px] font-bold text-slate-500 tracking-[0.12em] uppercase mb-3">Quelle est ta situation ?</p>
+        <section className="px-4 relative z-10">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.06)" }} />
+            <p className="text-[11px] font-bold tracking-[0.14em] uppercase shrink-0" style={{ color: "#475569" }}>Quelle est ta situation ?</p>
+            <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.06)" }} />
+          </div>
           <div className="flex flex-col gap-2 mb-5">
             {SCENARIO_LIST.map((scenario, i) => {
               const LucideIcon = "lucideIcon" in scenario ? scenario.lucideIcon : null;
               const isUrgence = scenario.id === "urgence";
               return (
                 <motion.button key={scenario.id}
-                  initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.06 + i * 0.04 }}
-                  whileTap={{ scale: 0.985 }}
+                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.06 + i * 0.035, duration: 0.35 }}
+                  whileTap={{ scale: 0.982 }}
                   onClick={scenario.onClick}
-                  className="w-full flex items-center justify-between p-4 rounded-2xl border text-left transition-all"
+                  className="w-full flex items-center justify-between text-left transition-all"
                   style={{
-                    background: isUrgence ? "rgba(127,29,29,0.25)" : "rgba(15,23,42,0.5)",
-                    borderColor: isUrgence ? "rgba(239,68,68,0.4)" : "rgba(51,65,85,0.7)",
-                    borderLeftWidth: "3px",
-                    borderLeftColor: scenario.color,
+                    padding: "14px 16px",
+                    borderRadius: "16px",
+                    background: isUrgence
+                      ? "linear-gradient(135deg, rgba(127,29,29,0.45) 0%, rgba(153,27,27,0.25) 100%)"
+                      : "rgba(255,255,255,0.035)",
+                    border: `1px solid ${isUrgence ? "rgba(239,68,68,0.35)" : "rgba(255,255,255,0.07)"}`,
+                    borderLeft: `3px solid ${scenario.color}`,
+                    backdropFilter: "blur(12px)",
+                    boxShadow: isUrgence ? `0 4px 24px rgba(239,68,68,0.12)` : "none",
                   }}>
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                      style={{ background: scenario.color + "22" }}>
+                      style={{
+                        background: scenario.color + "18",
+                        boxShadow: `0 0 16px ${scenario.color}25`,
+                      }}>
                       {scenario.icon
                         ? <span className="text-lg">{scenario.icon}</span>
-                        : LucideIcon && <LucideIcon size={19} style={{ color: scenario.color }} />}
+                        : LucideIcon && <LucideIcon size={18} style={{ color: scenario.color }} />}
                     </div>
                     <div className="min-w-0">
-                      <p className={`font-bold text-[14px] leading-tight ${isUrgence ? "text-red-300" : "text-white"}`}>{scenario.label}</p>
-                      <p className="text-xs text-slate-500 mt-0.5 truncate">{scenario.sublabel}</p>
+                      <p className="font-bold text-[14px] leading-tight"
+                        style={{ color: isUrgence ? "#FCA5A5" : "#F1F5F9" }}>
+                        {scenario.label}
+                      </p>
+                      <p className="text-xs mt-0.5 truncate" style={{ color: "#475569" }}>{scenario.sublabel}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0 ml-2">
                     {scenario.count != null && scenario.count > 0 && (
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                        style={{ background: scenario.color + "22", color: scenario.color }}>
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full tabular-nums"
+                        style={{ background: scenario.color + "20", color: scenario.color }}>
                         {scenario.count}
                       </span>
                     )}
                     {"urgence" in scenario && scenario.urgence && (
-                      <span className="text-xs font-bold px-1.5 py-0.5 rounded-lg bg-slate-800 text-slate-400 tabular-nums">
+                      <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-lg tabular-nums"
+                        style={{ background: "rgba(255,255,255,0.07)", color: "#94A3B8" }}>
                         {scenario.urgence}
                       </span>
                     )}
-                    <ChevronRight size={15} style={{ color: isUrgence ? "#F87171" : "#475569" }} />
+                    <ChevronRight size={14} style={{ color: isUrgence ? "#F87171" : "#334155" }} />
                   </div>
                 </motion.button>
               );
@@ -666,8 +702,8 @@ export default function HomePage() {
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
                 className="mb-5">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[11px] font-bold text-slate-500 tracking-[0.12em] uppercase">{t.nearby}</p>
-                  <Link href="/carte" className="text-xs text-indigo-400 font-semibold">{t.seeMap}</Link>
+                  <p className="text-[11px] font-bold tracking-[0.14em] uppercase" style={{ color: "#475569" }}>{t.nearby}</p>
+                  <Link href="/carte" className="text-xs font-semibold" style={{ color: "#818CF8" }}>{t.seeMap}</Link>
                 </div>
                 <div className="flex flex-col gap-2">
                   {sortedStructures.map((s, i) => {
@@ -678,21 +714,21 @@ export default function HomePage() {
                       : null;
                     return (
                       <motion.div key={s.id}
-                        initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                        initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.44 + i * 0.06 }}
-                        className="flex items-center gap-3 p-3.5 rounded-2xl border"
-                        style={{ background: "rgba(15,23,42,0.5)", borderColor: "rgba(51,65,85,0.6)" }}>
+                        className="flex items-center gap-3"
+                        style={{ padding: "12px 14px", borderRadius: "14px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", backdropFilter: "blur(8px)" }}>
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                          style={{ background: color + "22" }}>
+                          style={{ background: color + "20", boxShadow: `0 0 12px ${color}20` }}>
                           <Navigation size={15} style={{ color }} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-white truncate">{s.name}</p>
+                          <p className="text-sm font-semibold truncate" style={{ color: "#F1F5F9" }}>{s.name}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            {dist && <span className="text-xs text-slate-500">{dist}</span>}
+                            {dist && <span className="text-[11px]" style={{ color: "#475569" }}>{dist}</span>}
                             {oh.isOpen !== null && (
-                              <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md"
-                                style={{ background: oh.color + "20", color: oh.color }}>
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
+                                style={{ background: oh.color + "18", color: oh.color }}>
                                 {oh.isOpen ? "OUVERT" : "FERMÉ"}
                               </span>
                             )}
@@ -700,13 +736,14 @@ export default function HomePage() {
                         </div>
                         <div className="flex gap-1.5 shrink-0">
                           <Link href={`/carte?besoin=${s.type}`}
-                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold"
-                            style={{ background: color + "22", color }}>
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold"
+                            style={{ background: color + "18", color, boxShadow: `0 0 10px ${color}15` }}>
                             <MapPin size={11} /> Y aller
                           </Link>
                           {s.phone && (
                             <a href={`tel:${s.phone}`}
-                              className="flex items-center px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300">
+                              className="flex items-center px-2.5 py-1.5 rounded-xl text-xs font-semibold"
+                              style={{ background: "rgba(255,255,255,0.06)", color: "#94A3B8" }}>
                               <Phone size={11} />
                             </a>
                           )}
@@ -766,9 +803,15 @@ export default function HomePage() {
         </section>
       </main>
 
-      {/* ══ BOTTOM NAV — fixed ══ */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 flex justify-around border-t border-slate-800/60 px-1"
-        style={{ background: "rgba(3,7,18,0.97)", backdropFilter: "blur(20px)", paddingBottom: "max(10px, env(safe-area-inset-bottom))", paddingTop: "8px" }}>
+      {/* ══ BOTTOM NAV — fixed premium ══ */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 flex justify-around px-2"
+        style={{
+          background: "rgba(3,7,18,0.88)",
+          backdropFilter: "blur(24px)",
+          borderTop: "1px solid rgba(255,255,255,0.07)",
+          paddingTop: "8px",
+          paddingBottom: "max(12px, env(safe-area-inset-bottom))",
+        }}>
         {([
           { href: "/", icon: Home, label: "Accueil" },
           { href: "/assistant", icon: MessageCircle, label: "Assistant" },
@@ -780,10 +823,13 @@ export default function HomePage() {
           const isActive = pathname === item.href;
           return (
             <Link key={item.href} href={item.href}
-              className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-colors"
-              style={{ color: isActive ? "#818CF8" : "#475569" }}>
-              <Icon size={20} />
-              <span className="text-[10px] font-medium mt-0.5">{item.label}</span>
+              className="flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-xl transition-all"
+              style={{
+                color: isActive ? "#818CF8" : "#334155",
+                background: isActive ? "rgba(99,102,241,0.12)" : "transparent",
+              }}>
+              <Icon size={21} strokeWidth={isActive ? 2.5 : 1.8} />
+              <span className="text-[10px] font-semibold mt-0.5" style={{ color: isActive ? "#818CF8" : "#475569" }}>{item.label}</span>
             </Link>
           );
         })}
