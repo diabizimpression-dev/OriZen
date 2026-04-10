@@ -344,7 +344,7 @@ export default function HomePage() {
     const types = ["logement", "alimentation", "sante"] as const;
     Promise.allSettled(
       types.map((t) =>
-        fetch(`/api/structures?lat=${lat}&lng=${lng}&type=${t}&radius=5000`).then((r) => r.json())
+        fetch(`/api/structures?lat=${lat}&lng=${lng}&type=${t}&radius=5000`).then((r) => r.ok ? r.json() : null)
       )
     ).then((results) => {
       const counts: Record<string, number> = {};
@@ -448,10 +448,10 @@ export default function HomePage() {
       <Analytics page="/" />
       <PushNotifications />
 
-      {/* ── Background gradient glow ── */}
+      {/* ── Background gradient — visible indigo aurora at top ── */}
       <div className="fixed inset-0 pointer-events-none z-0" aria-hidden>
-        <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: "800px", height: "500px", background: "radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.22) 0%, rgba(139,92,246,0.08) 40%, transparent 70%)", filter: "blur(1px)" }} />
-        <div style={{ position: "absolute", bottom: 0, left: "10%", width: "300px", height: "300px", background: "radial-gradient(ellipse, rgba(16,185,129,0.06) 0%, transparent 70%)" }} />
+        <div style={{ position: "absolute", top: "-80px", left: "50%", transform: "translateX(-50%)", width: "120%", height: "420px", background: "radial-gradient(ellipse at 50% 20%, rgba(79,70,229,0.45) 0%, rgba(99,102,241,0.18) 35%, transparent 65%)", filter: "blur(2px)" }} />
+        <div style={{ position: "absolute", top: "0", left: "0", right: "0", height: "260px", background: "linear-gradient(180deg, rgba(55,48,163,0.28) 0%, transparent 100%)" }} />
       </div>
 
       {/* ══ HEADER sticky ══ */}
@@ -574,7 +574,7 @@ export default function HomePage() {
           <motion.div initial={{ opacity: 0, y: -8, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ type: "spring", stiffness: 300, damping: 24 }}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-6"
-            style={{ background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.3)", color: "#A5B4FC" }}>
+            style={{ background: "rgba(99,102,241,0.18)", border: "1px solid rgba(129,140,248,0.45)", color: "#C7D2FE" }}>
             🔒 Anonyme &amp; Gratuit · Zéro inscription
           </motion.div>
 
@@ -588,7 +588,7 @@ export default function HomePage() {
             <h1 className="font-black leading-[1.05] tracking-tight mb-5"
               style={{
                 fontSize: "clamp(38px,10vw,52px)",
-                background: "linear-gradient(135deg, #818CF8 0%, #C4B5FD 45%, #A78BFA 100%)",
+                background: "linear-gradient(130deg, #6366F1 0%, #A78BFA 40%, #E879F9 80%, #C4B5FD 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
               }}>
@@ -649,12 +649,13 @@ export default function HomePage() {
                     padding: "14px 16px",
                     borderRadius: "16px",
                     background: isUrgence
-                      ? "linear-gradient(135deg, rgba(127,29,29,0.45) 0%, rgba(153,27,27,0.25) 100%)"
-                      : "rgba(255,255,255,0.035)",
-                    border: `1px solid ${isUrgence ? "rgba(239,68,68,0.35)" : "rgba(255,255,255,0.07)"}`,
+                      ? "linear-gradient(135deg, rgba(127,29,29,0.55) 0%, rgba(30,10,10,0.85) 100%)"
+                      : `linear-gradient(135deg, ${scenario.color}18 0%, rgba(8,12,30,0.92) 55%)`,
+                    border: `1px solid ${isUrgence ? "rgba(239,68,68,0.4)" : scenario.color + "28"}`,
                     borderLeft: `3px solid ${scenario.color}`,
-                    backdropFilter: "blur(12px)",
-                    boxShadow: isUrgence ? `0 4px 24px rgba(239,68,68,0.12)` : "none",
+                    boxShadow: isUrgence
+                      ? `0 4px 20px rgba(239,68,68,0.18), inset 0 1px 0 rgba(255,255,255,0.05)`
+                      : `0 2px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)`,
                   }}>
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
