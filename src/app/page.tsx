@@ -6,9 +6,9 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, Utensils, HeartPulse, MessageCircle,
-  Clock, Phone, X, MapPin, Thermometer,
-  FileText, Baby, Flame, Wallet, Navigation,
-  Wind, Snowflake, Sun,
+  Phone, X, MapPin, Thermometer,
+  FileText, Baby, Flame, Wallet, Navigation, Layers,
+  Wind, Snowflake, Sun, Share2, ChevronRight,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { parseOpeningHours } from "@/lib/openingHours";
@@ -423,55 +423,72 @@ export default function HomePage() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
+  // Scenario list (hero + accordion)
+  const SCENARIO_LIST = [
+    {
+      id: "urgence", label: t.urgency, sublabel: "15 · 17 · 115 · 3919 — numéros gratuits",
+      icon: "🚨", color: "#EF4444", count: null, urgence: null,
+      onClick: () => { setSosOpen(true); track({ action: "sos-opened" }); },
+    },
+    ...MAIN_ACTIONS.map((a) => ({
+      id: a.id, label: a.label, sublabel: a.sublabel,
+      icon: null as string | null, lucideIcon: a.icon, color: a.color,
+      count: structureCounts[a.id as keyof typeof structureCounts] ?? null,
+      urgence: a.urgence,
+      onClick: () => handleAction(a.id, a.href),
+    })),
+    { id: "sans-papiers", label: "Papiers & Droits", sublabel: "Aide juridique, régularisation", icon: null, lucideIcon: FileText, color: "#8B5CF6", count: null, urgence: null, onClick: () => { window.location.href = "/carte?besoin=sans-papiers"; } },
+    { id: "mineur-isole", label: "Mineur isolé", sublabel: "Protection ASE, tutelle", icon: null, lucideIcon: Baby, color: "#EC4899", count: null, urgence: "119", onClick: () => { window.location.href = "/carte?besoin=mineur-isole"; } },
+    { id: "violence", label: "Violence & Danger", sublabel: "Mise en sécurité immédiate", icon: null, lucideIcon: Flame, color: "#F97316", count: null, urgence: "3919", onClick: () => { window.location.href = "/carte?besoin=violence-familiale"; } },
+    { id: "finances", label: "Difficultés financières", sublabel: "RSA, CAF, aides d'urgence", icon: null, lucideIcon: Wallet, color: "#06B6D4", count: null, urgence: null, onClick: () => { window.location.href = "/carte?besoin=aide-financiere"; } },
+  ] as const;
+
   return (
     <div className="min-h-screen bg-[#030712] text-white flex flex-col" dir={lang === "ar" ? "rtl" : "ltr"}>
       <Analytics page="/" />
       <PushNotifications />
-      <QuickExit />
 
-      {/* ══ HEADER compact ══ */}
-      <header className="flex items-center justify-between px-4 pt-safe pt-3 pb-2">
-        {/* Localisation + météo */}
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          {location?.commune ? (
-            <div className="flex items-center gap-1.5 min-w-0">
-              <MapPin size={11} className="text-slate-500 shrink-0" />
-              <span className="text-xs text-slate-400 truncate font-medium">
-                {location.commune}{location.postcode ? ` ${location.postcode}` : ""}
-              </span>
-            </div>
-          ) : (
-            <span className="text-xs text-slate-600">Localisation…</span>
-          )}
-          {weather && (
-            <span className="text-xs text-slate-400 shrink-0">
-              {weatherIcon(weather.weathercode)} {weather.temperature}°C
-            </span>
-          )}
+      {/* ══ HEADER sticky ══ */}
+      <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b border-slate-800/60"
+        style={{ background: "rgba(3,7,18,0.96)", backdropFilter: "blur(20px)" }}>
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
+            <Layers size={14} className="text-white" />
+          </div>
+          <span className="font-black text-white text-sm tracking-tight">OriZen</span>
         </div>
-        {/* Langue + discret */}
+
+        {/* Location + weather pill (center) */}
+        <div className="flex items-center gap-1.5 text-xs text-slate-500 min-w-0 mx-3 flex-1 justify-center">
+          {location?.commune && (
+            <>
+              <MapPin size={10} className="shrink-0" />
+              <span className="truncate font-medium">{location.commune}</span>
+            </>
+          )}
+          {weather && <span className="shrink-0">{weatherIcon(weather.weathercode)} {weather.temperature}°C</span>}
+        </div>
+
+        {/* Controls */}
         <div className="flex items-center gap-1.5 shrink-0">
           <DiscreetToggle />
+          {/* Lang */}
           <div className="relative">
-            <button
-              onClick={() => setLangOpen((v) => !v)}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-slate-400 hover:text-white transition-colors"
-            >
+            <button onClick={() => setLangOpen((v) => !v)}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-700 text-xs text-slate-400 hover:text-white transition-colors"
+              style={{ background: "rgba(30,41,59,0.8)" }}>
               <span>{LANGS.find((l) => l.code === lang)?.flag}</span>
-              <span className="font-semibold">{lang.toUpperCase()}</span>
+              <span className="font-bold">{lang.toUpperCase()}</span>
             </button>
             <AnimatePresence>
               {langOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -4, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.96 }}
+                <motion.div initial={{ opacity: 0, y: -4, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }}
                   transition={{ duration: 0.1 }}
-                  className="absolute right-0 top-8 z-30 bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-2xl"
-                >
+                  className="absolute right-0 top-9 z-50 bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-2xl min-w-[120px]">
                   {LANGS.map((l) => (
                     <button key={l.code} onClick={() => switchLang(l.code)}
-                      className={`flex items-center gap-2 px-3 py-2 text-xs w-full text-left hover:bg-slate-800 ${lang === l.code ? "text-white font-bold" : "text-slate-400"}`}>
+                      className={`flex items-center gap-2 px-3 py-2.5 text-xs w-full text-left hover:bg-slate-800 ${lang === l.code ? "text-white font-bold" : "text-slate-400"}`}>
                       <span>{l.flag}</span><span>{l.name}</span>
                     </button>
                   ))}
@@ -479,6 +496,8 @@ export default function HomePage() {
               )}
             </AnimatePresence>
           </div>
+          {/* Sortie rapide */}
+          <QuickExit />
         </div>
       </header>
 
@@ -486,11 +505,12 @@ export default function HomePage() {
       <AnimatePresence>
         {alertConfig && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden px-4">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border mb-2"
+            className="overflow-hidden">
+            <div className="flex items-center gap-2.5 px-4 py-3 text-xs font-semibold border-b"
               style={{ background: alertConfig.bg, borderColor: alertConfig.border, color: alertConfig.color }}>
-              <Thermometer size={12} className="shrink-0" />
-              <span>{alertConfig.text}</span>
+              <Thermometer size={13} className="shrink-0" />
+              <span className="font-bold uppercase tracking-wide">Alerte météo</span>
+              <span className="font-normal opacity-80 truncate">{alertConfig.text}</span>
             </div>
           </motion.div>
         )}
@@ -503,14 +523,14 @@ export default function HomePage() {
             className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col"
             onClick={() => setSosOpen(false)}>
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              transition={{ type: "spring", damping: 28, stiffness: 280 }}
               onClick={(e) => e.stopPropagation()}
-              className="mt-auto bg-[#0a0f1e] border-t border-red-900/50 rounded-t-3xl px-5 pt-6 pb-10 max-h-[88vh] overflow-y-auto">
+              className="mt-auto bg-[#0a0f1e] border-t border-red-900/40 rounded-t-3xl px-5 pt-5 pb-10 max-h-[88vh] overflow-y-auto">
               <div className="w-10 h-1 bg-slate-700 rounded-full mx-auto mb-5" />
               <div className="flex items-center justify-between mb-5">
                 <div>
-                  <h2 className="font-bold text-white text-xl">Urgence</h2>
-                  <p className="text-xs text-red-400">Numéros gratuits · 24h/24</p>
+                  <h2 className="font-black text-white text-xl">Urgence</h2>
+                  <p className="text-xs text-red-400 mt-0.5">Numéros gratuits · 24h/24 · anonymes</p>
                 </div>
                 <button onClick={() => setSosOpen(false)} className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700">
                   <X size={18} className="text-slate-400" />
@@ -519,15 +539,16 @@ export default function HomePage() {
               <div className="flex flex-col gap-3">
                 {SOS_NUMBERS.map((s) => (
                   <a key={s.number} href={`tel:${s.number}`}
-                    className="flex items-center justify-between p-4 rounded-2xl bg-red-950/40 border border-red-800/40 active:scale-98 transition-all">
+                    className="flex items-center justify-between p-4 rounded-2xl border border-red-900/30 active:scale-[0.98] transition-all"
+                    style={{ background: "rgba(127,29,29,0.3)" }}>
                     <div>
                       <p className="font-bold text-white text-sm">{s.label}</p>
                       <p className="text-xs text-slate-500 mt-0.5">{s.desc}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-black text-2xl text-red-400">{s.number}</span>
-                      <div className="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center">
-                        <Phone size={16} className="text-white" />
+                    <div className="flex items-center gap-2.5">
+                      <span className="font-black text-2xl text-red-400 tabular-nums">{s.number}</span>
+                      <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center shrink-0">
+                        <Phone size={17} className="text-white" />
                       </div>
                     </div>
                   </a>
@@ -539,249 +560,230 @@ export default function HomePage() {
       </AnimatePresence>
 
       {/* ══ MAIN ══ */}
-      <main className="flex-1 flex flex-col px-4 pb-28 max-w-lg mx-auto w-full">
+      <main className="flex-1 flex flex-col pb-28 max-w-lg mx-auto w-full">
 
-        {/* ── Bouton URGENCE ── */}
-        <motion.button
-          initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={() => { setSosOpen(true); track({ action: "sos-opened" }); }}
-          className="relative w-full flex items-center justify-between px-5 rounded-2xl font-bold text-sm mb-4 shadow-lg shadow-red-950/50 border border-red-700/60 overflow-hidden"
-          style={{ background: "linear-gradient(135deg,#7f1d1d,#991b1b)", height: "56px" }}
-        >
-          {/* Pulse ring for visual urgency */}
-          <span className="absolute inset-0 rounded-2xl animate-ping opacity-20 bg-red-500 pointer-events-none" style={{ animationDuration: "2.4s" }} />
-          <div className="relative flex items-center gap-3">
-            <span className="text-lg">🚨</span>
-            <span>{t.urgency}</span>
+        {/* ══ HERO ══ */}
+        <section className="px-5 pt-7 pb-6 text-center">
+          {/* Badge */}
+          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-slate-700/80 text-xs text-slate-400 font-medium mb-5"
+            style={{ background: "rgba(15,23,42,0.8)" }}>
+            🔒 Anonyme &amp; Gratuit
+          </motion.div>
+
+          {/* Headline */}
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }}>
+            <h1 className="font-black text-white leading-none mb-1" style={{ fontSize: "clamp(32px,9vw,42px)" }}>
+              {greeting} —
+            </h1>
+            <h1 className="font-black leading-none mb-4" style={{ fontSize: "clamp(32px,9vw,42px)", color: "#818CF8" }}>
+              de l&apos;aide en 2 clics.
+            </h1>
+            <p className="text-sm text-slate-400 max-w-xs mx-auto leading-relaxed">
+              {totalStructures > 0
+                ? `${totalStructures} structures trouvées autour de vous — résultats en temps réel`
+                : "Le guide social qui vous oriente immédiatement vers les bonnes structures."}
+            </p>
+          </motion.div>
+
+          {/* CTAs */}
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="mt-6 flex flex-col gap-2.5">
+            <Link href="/assistant"
+              className="flex items-center justify-center gap-2.5 w-full py-4 rounded-2xl font-bold text-sm text-white shadow-lg shadow-indigo-950/60 transition-all active:scale-[0.98]"
+              style={{ background: "linear-gradient(135deg,#4F46E5,#6D28D9)" }}
+              onClick={() => track({ action: "hero-cta-assistant" })}>
+              <MessageCircle size={18} />
+              Parler à l&apos;assistant OriZen
+            </Link>
+            <button
+              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold text-sm border border-slate-700 text-slate-400 transition-all active:scale-[0.98] hover:border-slate-500 hover:text-white"
+              style={{ background: "rgba(15,23,42,0.5)" }}
+              onClick={() => {
+                if (navigator.share) navigator.share({ title: "OriZen", text: "Trouve de l'aide en 2 clics", url: window.location.href });
+              }}>
+              <Share2 size={15} />
+              Partager cette aide à un proche
+            </button>
+          </motion.div>
+        </section>
+
+        {/* ══ SITUATION ══ */}
+        <section className="px-4">
+          <p className="text-[11px] font-bold text-slate-500 tracking-[0.12em] uppercase mb-3">Quelle est ta situation ?</p>
+          <div className="flex flex-col gap-2 mb-5">
+            {SCENARIO_LIST.map((scenario, i) => {
+              const LucideIcon = "lucideIcon" in scenario ? scenario.lucideIcon : null;
+              const isUrgence = scenario.id === "urgence";
+              return (
+                <motion.button key={scenario.id}
+                  initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.06 + i * 0.04 }}
+                  whileTap={{ scale: 0.985 }}
+                  onClick={scenario.onClick}
+                  className="w-full flex items-center justify-between p-4 rounded-2xl border text-left transition-all"
+                  style={{
+                    background: isUrgence ? "rgba(127,29,29,0.25)" : "rgba(15,23,42,0.5)",
+                    borderColor: isUrgence ? "rgba(239,68,68,0.4)" : "rgba(51,65,85,0.7)",
+                    borderLeftWidth: "3px",
+                    borderLeftColor: scenario.color,
+                  }}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ background: scenario.color + "22" }}>
+                      {scenario.icon
+                        ? <span className="text-lg">{scenario.icon}</span>
+                        : LucideIcon && <LucideIcon size={19} style={{ color: scenario.color }} />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className={`font-bold text-[14px] leading-tight ${isUrgence ? "text-red-300" : "text-white"}`}>{scenario.label}</p>
+                      <p className="text-xs text-slate-500 mt-0.5 truncate">{scenario.sublabel}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                    {scenario.count != null && scenario.count > 0 && (
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                        style={{ background: scenario.color + "22", color: scenario.color }}>
+                        {scenario.count}
+                      </span>
+                    )}
+                    {"urgence" in scenario && scenario.urgence && (
+                      <span className="text-xs font-bold px-1.5 py-0.5 rounded-lg bg-slate-800 text-slate-400 tabular-nums">
+                        {scenario.urgence}
+                      </span>
+                    )}
+                    <ChevronRight size={15} style={{ color: isUrgence ? "#F87171" : "#475569" }} />
+                  </div>
+                </motion.button>
+              );
+            })}
           </div>
-          <span className="relative text-red-300 text-xs font-normal">15 · 17 · 115 →</span>
-        </motion.button>
 
-        {/* ── Titre avec bonjour contextuel ── */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 }} className="mb-4">
-          <p className="text-xs font-medium text-slate-500 mb-0.5">{greeting}</p>
-          <h1 className="text-[22px] font-bold tracking-tight text-white leading-tight">{t.title}</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {totalStructures > 0
-              ? `${totalStructures} ${t.subtitle}`
-              : coords ? "Recherche en cours…" : "Localisation…"}
-          </p>
-        </motion.div>
+          {/* ══ STRUCTURES PROCHES ══ */}
+          {coords && nearbyStructures.length === 0 && !contextLoaded && <StructureSkeleton />}
 
-        {/* ══ ACTION LAUNCHER — full width, 68px, 1-hand ══ */}
-        <div className="flex flex-col gap-2.5 mb-5">
-          {MAIN_ACTIONS.map((action, i) => {
-            const Icon = action.icon;
-            const isActive = activeAction === action.id;
-            const count = structureCounts[action.id as keyof typeof structureCounts];
-            return (
-              <motion.button
-                key={action.id}
-                initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.08 + i * 0.05 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleAction(action.id, action.href)}
-                className="w-full flex items-center justify-between px-4 rounded-2xl border transition-all text-left"
-                style={{
-                  height: "68px",
-                  background: isActive ? action.color + "25" : action.bg,
-                  borderColor: isActive ? action.color + "80" : action.border,
-                }}
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: action.color + "30" }}>
-                    <Icon size={20} style={{ color: action.color }} />
-                  </div>
-                  <div>
-                    <p className="font-bold text-[15px] text-white leading-tight">{action.label}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{action.sublabel}</p>
-                  </div>
+          <AnimatePresence>
+            {sortedStructures.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+                className="mb-5">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[11px] font-bold text-slate-500 tracking-[0.12em] uppercase">{t.nearby}</p>
+                  <Link href="/carte" className="text-xs text-indigo-400 font-semibold">{t.seeMap}</Link>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {count != null && count > 0 && (
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                      style={{ background: action.color + "25", color: action.color }}>
-                      {count}
-                    </span>
-                  )}
-                  {action.urgence && (
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">
-                      {action.urgence}
-                    </span>
-                  )}
-                  <span className="text-slate-600 text-lg">›</span>
-                </div>
-              </motion.button>
-            );
-          })}
-        </div>
-
-        {/* ── Scénarios secondaires (chips horizontaux) ── */}
-        <div style={{ display: "flex", overflowX: "auto", gap: "8px", paddingBottom: "4px", marginBottom: "20px" }}>
-          {EXTRA_ACTIONS.map((a) => {
-            const Icon = a.icon;
-            return (
-              <button key={a.id}
-                onClick={() => { localStorage.setItem("orizen_last_action", a.id); window.location.href = a.href; }}
-                style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", borderRadius: "999px", border: "1px solid rgba(51,65,85,0.8)", background: "rgba(15,23,42,0.6)", whiteSpace: "nowrap" }}>
-                <Icon size={13} style={{ color: a.color }} />
-                <span style={{ fontSize: "12px", color: "#94a3b8", fontWeight: 500 }}>{a.label}</span>
-              </button>
-            );
-          })}
-          <Link href="/droits"
-            style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", borderRadius: "999px", border: "1px solid rgba(51,65,85,0.8)", background: "rgba(15,23,42,0.6)", whiteSpace: "nowrap" }}>
-            <span style={{ fontSize: "12px" }}>⚖️</span>
-            <span style={{ fontSize: "12px", color: "#94a3b8", fontWeight: 500 }}>Droits</span>
-          </Link>
-          <Link href="/vault"
-            style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", borderRadius: "999px", border: "1px solid rgba(51,65,85,0.8)", background: "rgba(15,23,42,0.6)", whiteSpace: "nowrap" }}>
-            <span style={{ fontSize: "12px" }}>🔒</span>
-            <span style={{ fontSize: "12px", color: "#94a3b8", fontWeight: 500 }}>Coffre</span>
-          </Link>
-        </div>
-
-        {/* ══ IMMEDIATE RESULTS — top 3 structures avec OUVERT/FERMÉ ══ */}
-        {/* Skeleton while loading */}
-        {coords && nearbyStructures.length === 0 && !contextLoaded && <StructureSkeleton />}
-
-        <AnimatePresence>
-          {sortedStructures.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.38 }}
-              className="mb-5">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t.nearby}</span>
-                <Link href="/carte" className="text-xs text-indigo-400 font-medium hover:text-indigo-300">{t.seeMap}</Link>
-              </div>
-              <div className="flex flex-col gap-2">
-                {sortedStructures.map((s, i) => {
-                  const color = typeColor[s.type] ?? "#8B5CF6";
-                  const oh = parseOpeningHours(s.open);
-                  const dist = s.distance_m != null
-                    ? s.distance_m < 1000 ? `${s.distance_m} m` : `${(s.distance_m / 1000).toFixed(1)} km`
-                    : null;
-                  return (
-                    <motion.div key={s.id}
-                      initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.42 + i * 0.06 }}
-                      className="flex items-center gap-3 p-3.5 rounded-2xl border border-slate-800/80 bg-slate-900/50">
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                        style={{ background: color + "20" }}>
-                        <Navigation size={15} style={{ color }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-white truncate">{s.name}</p>
-                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          {dist && <span className="text-xs text-slate-500">{dist}</span>}
-                          {oh.isOpen !== null && (
-                            <span className="text-xs font-semibold px-1.5 py-0.5 rounded-md"
-                              style={{ background: oh.color + "20", color: oh.color }}>
-                              {oh.isOpen ? "OUVERT" : "FERMÉ"}
-                            </span>
+                <div className="flex flex-col gap-2">
+                  {sortedStructures.map((s, i) => {
+                    const color = typeColor[s.type] ?? "#8B5CF6";
+                    const oh = parseOpeningHours(s.open);
+                    const dist = s.distance_m != null
+                      ? s.distance_m < 1000 ? `${s.distance_m} m` : `${(s.distance_m / 1000).toFixed(1)} km`
+                      : null;
+                    return (
+                      <motion.div key={s.id}
+                        initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.44 + i * 0.06 }}
+                        className="flex items-center gap-3 p-3.5 rounded-2xl border"
+                        style={{ background: "rgba(15,23,42,0.5)", borderColor: "rgba(51,65,85,0.6)" }}>
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                          style={{ background: color + "22" }}>
+                          <Navigation size={15} style={{ color }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-white truncate">{s.name}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {dist && <span className="text-xs text-slate-500">{dist}</span>}
+                            {oh.isOpen !== null && (
+                              <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md"
+                                style={{ background: oh.color + "20", color: oh.color }}>
+                                {oh.isOpen ? "OUVERT" : "FERMÉ"}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex gap-1.5 shrink-0">
+                          <Link href={`/carte?besoin=${s.type}`}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold"
+                            style={{ background: color + "22", color }}>
+                            <MapPin size={11} /> Y aller
+                          </Link>
+                          {s.phone && (
+                            <a href={`tel:${s.phone}`}
+                              className="flex items-center px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300">
+                              <Phone size={11} />
+                            </a>
                           )}
                         </div>
-                      </div>
-                      <div className="flex gap-1.5 shrink-0">
-                        <Link href={`/carte?besoin=${s.type}`}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors"
-                          style={{ background: color + "20", color }}>
-                          <MapPin size={11} /> Y aller
-                        </Link>
-                        {s.phone && (
-                          <a href={`tel:${s.phone}`}
-                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">
-                            <Phone size={11} />
-                          </a>
-                        )}
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-        {/* ── Guichets officiels ── */}
-        <AnimatePresence>
-          {guichets.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-              className="mb-5">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Guichets officiels</span>
-              <div className="grid grid-cols-2 gap-2">
-                {guichets.map((g) => (
-                  <div key={g.id} className="p-3 rounded-xl border"
-                    style={{ background: g.color + "0c", borderColor: g.color + "25" }}>
-                    <p className="text-xs font-bold" style={{ color: g.color }}>{g.typeLabel}</p>
-                    <p className="text-xs text-slate-500 truncate mt-0.5">{g.name}</p>
-                    {g.phone && (
-                      <a href={`tel:${g.phone.replace(/\s/g, "")}`}
-                        className="flex items-center gap-1 text-xs mt-1.5 font-semibold" style={{ color: g.color }}>
-                        <Phone size={9} /> {g.phone}
-                      </a>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+          {/* ── Guichets officiels ── */}
+          <AnimatePresence>
+            {guichets.length > 0 && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mb-5">
+                <p className="text-[11px] font-bold text-slate-500 tracking-[0.12em] uppercase mb-2">Guichets officiels</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {guichets.map((g) => (
+                    <div key={g.id} className="p-3 rounded-xl border"
+                      style={{ background: g.color + "0c", borderColor: g.color + "25" }}>
+                      <p className="text-xs font-bold" style={{ color: g.color }}>{g.typeLabel}</p>
+                      <p className="text-xs text-slate-500 truncate mt-0.5">{g.name}</p>
+                      {g.phone && (
+                        <a href={`tel:${g.phone.replace(/\s/g, "")}`}
+                          className="flex items-center gap-1 text-xs mt-1.5 font-semibold" style={{ color: g.color }}>
+                          <Phone size={9} /> {g.phone}
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-        {/* ── CCAS ── */}
-        <AnimatePresence>
-          {ccas && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.55 }}
-              className="mb-5 flex items-center gap-3 p-3.5 rounded-2xl border border-cyan-800/30 bg-cyan-950/20">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-cyan-400">{ccas.ccasName}</p>
-                <p className="text-xs text-slate-500 mt-0.5">Aide locale · 48h</p>
-              </div>
-              {(ccas.ccasPhone ?? ccas.mairiePhone) && (
-                <a href={`tel:${(ccas.ccasPhone ?? ccas.mairiePhone)?.replace(/\s/g, "")}`}
-                  className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-900/40 text-xs font-semibold text-cyan-400">
-                  <Phone size={11} /> Appeler
-                </a>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ── Continuer ── */}
-        <AnimatePresence>
-          {lastActionData && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="mb-5 flex items-center gap-3 p-3 rounded-xl border border-slate-800 bg-slate-900/40">
-              <Clock size={13} className="text-slate-600 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-slate-600">{t.lastSeen}</p>
-                <p className="text-sm font-semibold text-slate-300">{lastActionData.label}</p>
-              </div>
-              <button onClick={() => handleAction(lastActionData.id, lastActionData.href)}
-                className="text-xs text-indigo-400 font-bold shrink-0">{t.continue}</button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
+          {/* ── CCAS ── */}
+          <AnimatePresence>
+            {ccas && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.55 }}
+                className="mb-5 flex items-center gap-3 p-3.5 rounded-2xl border"
+                style={{ background: "rgba(8,51,68,0.4)", borderColor: "rgba(22,163,204,0.25)" }}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-cyan-400">{ccas.ccasName}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Aide sociale locale · 48h</p>
+                </div>
+                {(ccas.ccasPhone ?? ccas.mairiePhone) && (
+                  <a href={`tel:${(ccas.ccasPhone ?? ccas.mairiePhone)?.replace(/\s/g, "")}`}
+                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
+                    style={{ background: "rgba(22,163,204,0.15)", color: "#22D3EE" }}>
+                    <Phone size={11} /> Appeler
+                  </a>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </section>
       </main>
 
       {/* ══ BOTTOM NAV — fixed ══ */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 flex justify-around px-2 py-2 border-t border-slate-800/80"
-        style={{ background: "rgba(3,7,18,0.97)", backdropFilter: "blur(16px)", paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}>
-        {[
-          { href: "/droits", icon: "⚖️", label: "Droits" },
-          { href: "/assistant", icon: "💬", label: "Assistant" },
-          { href: "/carte", icon: "🗺️", label: "Carte" },
-          { href: "/emploi", icon: "💼", label: "Emploi" },
-          { href: "/vault", icon: "🔒", label: "Coffre" },
-        ].map((item) => {
+      <nav className="fixed bottom-0 left-0 right-0 z-40 flex justify-around border-t border-slate-800/60 px-1"
+        style={{ background: "rgba(3,7,18,0.97)", backdropFilter: "blur(20px)", paddingBottom: "max(10px, env(safe-area-inset-bottom))", paddingTop: "8px" }}>
+        {([
+          { href: "/", icon: Home, label: "Accueil" },
+          { href: "/assistant", icon: MessageCircle, label: "Assistant" },
+          { href: "/carte", icon: MapPin, label: "Carte" },
+          { href: "/vault", icon: Wallet, label: "Coffre" },
+          { href: "/droits", icon: FileText, label: "Droits" },
+        ] as const).map((item) => {
+          const Icon = item.icon;
           const isActive = pathname === item.href;
           return (
             <Link key={item.href} href={item.href}
-              className={`flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-xl transition-colors ${isActive ? "bg-slate-800/60" : ""}`}>
-              <span className="text-lg leading-none">{item.icon}</span>
-              <span className={`text-[10px] font-medium mt-0.5 ${isActive ? "text-white" : "text-slate-600"}`}>{item.label}</span>
+              className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-colors"
+              style={{ color: isActive ? "#818CF8" : "#475569" }}>
+              <Icon size={20} />
+              <span className="text-[10px] font-medium mt-0.5">{item.label}</span>
             </Link>
           );
         })}
