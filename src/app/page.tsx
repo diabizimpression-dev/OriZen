@@ -137,9 +137,9 @@ const MAIN_ACTIONS = [
     label: "Dormir",
     sublabel: "Hébergement d'urgence",
     icon: Home,
-    color: "#6366F1",
-    bg: "rgba(99,102,241,0.12)",
-    border: "rgba(99,102,241,0.3)",
+    color: "#818CF8",
+    bg: "rgba(99,102,241,0.18)",
+    border: "rgba(99,102,241,0.45)",
     href: "/carte?besoin=logement",
     urgence: "115",
   },
@@ -148,9 +148,9 @@ const MAIN_ACTIONS = [
     label: "Manger",
     sublabel: "Distribution alimentaire",
     icon: Utensils,
-    color: "#10B981",
-    bg: "rgba(16,185,129,0.12)",
-    border: "rgba(16,185,129,0.3)",
+    color: "#34D399",
+    bg: "rgba(16,185,129,0.15)",
+    border: "rgba(16,185,129,0.4)",
     href: "/carte?besoin=alimentation",
     urgence: null,
   },
@@ -159,9 +159,9 @@ const MAIN_ACTIONS = [
     label: "Se soigner",
     sublabel: "Soins gratuits (PASS)",
     icon: HeartPulse,
-    color: "#F59E0B",
-    bg: "rgba(245,158,11,0.12)",
-    border: "rgba(245,158,11,0.3)",
+    color: "#FBBF24",
+    bg: "rgba(245,158,11,0.15)",
+    border: "rgba(245,158,11,0.4)",
     href: "/carte?besoin=sante",
     urgence: "15",
   },
@@ -170,9 +170,9 @@ const MAIN_ACTIONS = [
     label: "Assistant",
     sublabel: "Aide & conseils IA",
     icon: MessageCircle,
-    color: "#8B5CF6",
-    bg: "rgba(139,92,246,0.12)",
-    border: "rgba(139,92,246,0.3)",
+    color: "#A78BFA",
+    bg: "rgba(139,92,246,0.15)",
+    border: "rgba(139,92,246,0.4)",
     href: "/assistant",
     urgence: null,
   },
@@ -539,7 +539,7 @@ export default function HomePage() {
       </AnimatePresence>
 
       {/* ══ MAIN ══ */}
-      <main className="flex-1 flex flex-col px-4 pb-6 max-w-lg mx-auto w-full">
+      <main className="flex-1 flex flex-col px-4 pb-28 max-w-lg mx-auto w-full">
 
         {/* ── Bouton URGENCE ── */}
         <motion.button
@@ -591,7 +591,7 @@ export default function HomePage() {
               >
                 <div className="flex items-center gap-3.5">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: action.color + "20" }}>
+                    style={{ background: action.color + "30" }}>
                     <Icon size={20} style={{ color: action.color }} />
                   </div>
                   <div>
@@ -619,30 +619,29 @@ export default function HomePage() {
         </div>
 
         {/* ── Scénarios secondaires (chips horizontaux) ── */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.32 }}
-          className="flex gap-2 overflow-x-auto pb-1 mb-5 scrollbar-hide">
+        <div style={{ display: "flex", overflowX: "auto", gap: "8px", paddingBottom: "4px", marginBottom: "20px" }}>
           {EXTRA_ACTIONS.map((a) => {
             const Icon = a.icon;
             return (
               <button key={a.id}
                 onClick={() => { localStorage.setItem("orizen_last_action", a.id); window.location.href = a.href; }}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-full border border-slate-800 bg-slate-900/60 hover:border-slate-600 transition-colors shrink-0">
+                style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", borderRadius: "999px", border: "1px solid rgba(51,65,85,0.8)", background: "rgba(15,23,42,0.6)", whiteSpace: "nowrap" }}>
                 <Icon size={13} style={{ color: a.color }} />
-                <span className="text-xs text-slate-400 font-medium whitespace-nowrap">{a.label}</span>
+                <span style={{ fontSize: "12px", color: "#94a3b8", fontWeight: 500 }}>{a.label}</span>
               </button>
             );
           })}
-          <Link href="/vault"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-full border border-slate-800 bg-slate-900/60 hover:border-slate-600 transition-colors shrink-0">
-            <span className="text-xs">🔒</span>
-            <span className="text-xs text-slate-400 font-medium whitespace-nowrap">Coffre</span>
-          </Link>
           <Link href="/droits"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-full border border-slate-800 bg-slate-900/60 hover:border-slate-600 transition-colors shrink-0">
-            <span className="text-xs">⚖️</span>
-            <span className="text-xs text-slate-400 font-medium whitespace-nowrap">Droits</span>
+            style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", borderRadius: "999px", border: "1px solid rgba(51,65,85,0.8)", background: "rgba(15,23,42,0.6)", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: "12px" }}>⚖️</span>
+            <span style={{ fontSize: "12px", color: "#94a3b8", fontWeight: 500 }}>Droits</span>
           </Link>
-        </motion.div>
+          <Link href="/vault"
+            style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", borderRadius: "999px", border: "1px solid rgba(51,65,85,0.8)", background: "rgba(15,23,42,0.6)", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: "12px" }}>🔒</span>
+            <span style={{ fontSize: "12px", color: "#94a3b8", fontWeight: 500 }}>Coffre</span>
+          </Link>
+        </div>
 
         {/* ══ IMMEDIATE RESULTS — top 3 structures avec OUVERT/FERMÉ ══ */}
         {/* Skeleton while loading */}
@@ -765,26 +764,28 @@ export default function HomePage() {
           )}
         </AnimatePresence>
 
-        {/* ── Nav bottom ── */}
-        <nav className="flex justify-around pt-2 border-t border-slate-800/60 mt-auto">
-          {[
-            { href: "/droits", icon: "⚖️", label: "Droits" },
-            { href: "/assistant", icon: "💬", label: "Assistant" },
-            { href: "/carte", icon: "🗺️", label: "Carte" },
-            { href: "/emploi", icon: "💼", label: "Emploi" },
-            { href: "/vault", icon: "🔒", label: "Coffre" },
-          ].map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link key={item.href} href={item.href}
-                className={`flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-colors ${isActive ? "bg-slate-800/70" : "hover:bg-slate-800/40"}`}>
-                <span className="text-base">{item.icon}</span>
-                <span className={`text-[10px] font-medium ${isActive ? "text-white" : "text-slate-500"}`}>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
       </main>
+
+      {/* ══ BOTTOM NAV — fixed ══ */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 flex justify-around px-2 py-2 border-t border-slate-800/80"
+        style={{ background: "rgba(3,7,18,0.97)", backdropFilter: "blur(16px)", paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}>
+        {[
+          { href: "/droits", icon: "⚖️", label: "Droits" },
+          { href: "/assistant", icon: "💬", label: "Assistant" },
+          { href: "/carte", icon: "🗺️", label: "Carte" },
+          { href: "/emploi", icon: "💼", label: "Emploi" },
+          { href: "/vault", icon: "🔒", label: "Coffre" },
+        ].map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link key={item.href} href={item.href}
+              className={`flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-xl transition-colors ${isActive ? "bg-slate-800/60" : ""}`}>
+              <span className="text-lg leading-none">{item.icon}</span>
+              <span className={`text-[10px] font-medium mt-0.5 ${isActive ? "text-white" : "text-slate-600"}`}>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }
