@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, Utensils, HeartPulse, AlertTriangle, FileText,
-  ArrowLeft, Send, Phone, MapPin, Mic, MicOff, Loader2, Share2, CheckCircle2
+  ArrowLeft, Send, Phone, MapPin, Mic, MicOff, Loader2, Share2, CheckCircle2, Layers
 } from "lucide-react";
 import { Analytics } from "@/components/Analytics";
 
@@ -68,22 +68,48 @@ const QUICK_SITUATIONS: QuickSituation[] = [
 
 function formatMessageContent(content: string) {
   const phoneRegex = /\b(0[0-9]{9}|[0-9]{2} [0-9]{2} [0-9]{2} [0-9]{2} [0-9]{2}|115|119|3919|3114|3230|17|15|18|112|114)\b/g;
-  const parts = content.split(phoneRegex);
-  return parts.map((part, i) => {
-    if (phoneRegex.test(part) || /^(115|119|3919|17|15|18|112|114|3114|3230)$/.test(part)) {
-      return (
-        <a
-          key={i}
-          href={`tel:${part.replace(/\s/g, "")}`}
-          className="inline-flex items-center gap-1 text-green-400 font-bold underline underline-offset-2 hover:text-green-300"
-        >
-          <Phone size={12} />
-          {part}
-        </a>
-      );
-    }
-    return <span key={i}>{part}</span>;
+
+  // Split by lines first, then render each line
+  const lines = content.split("\n");
+  const result: React.ReactNode[] = [];
+
+  lines.forEach((line, lineIdx) => {
+    if (lineIdx > 0) result.push(<br key={`br-${lineIdx}`} />);
+
+    // Split line by **bold** markers
+    const boldParts = line.split(/(\*\*[^*]+\*\*)/g);
+    boldParts.forEach((segment, segIdx) => {
+      if (/^\*\*[^*]+\*\*$/.test(segment)) {
+        // Bold text
+        result.push(
+          <strong key={`b-${lineIdx}-${segIdx}`} className="font-semibold text-white">
+            {segment.slice(2, -2)}
+          </strong>
+        );
+      } else {
+        // Scan for phone numbers within plain text segment
+        const phoneParts = segment.split(phoneRegex);
+        phoneParts.forEach((part, pIdx) => {
+          if (/^(0[0-9]{9}|[0-9]{2} [0-9]{2} [0-9]{2} [0-9]{2} [0-9]{2}|115|119|3919|3114|3230|17|15|18|112|114)$/.test(part)) {
+            result.push(
+              <a
+                key={`p-${lineIdx}-${segIdx}-${pIdx}`}
+                href={`tel:${part.replace(/\s/g, "")}`}
+                className="inline-flex items-center gap-1 text-green-400 font-bold underline underline-offset-2 hover:text-green-300"
+              >
+                <Phone size={12} />
+                {part}
+              </a>
+            );
+          } else if (part) {
+            result.push(<span key={`s-${lineIdx}-${segIdx}-${pIdx}`}>{part}</span>);
+          }
+        });
+      }
+    });
   });
+
+  return result;
 }
 
 export default function AssistantPage() {
@@ -221,7 +247,7 @@ export default function AssistantPage() {
         {/* Logo */}
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
-            <span className="text-white font-bold text-xs leading-none">O</span>
+            <Layers size={14} className="text-white" />
           </div>
           <span className="font-semibold text-white text-sm tracking-tight">OriZen</span>
           {location && (
@@ -263,7 +289,7 @@ export default function AssistantPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.25 }}
-              className="flex-1 flex flex-col justify-center"
+              className="flex-1 flex flex-col pt-4"
             >
               <div className="mb-7">
                 <h2 className="text-2xl font-bold text-white mb-1.5">Décris ta situation</h2>
