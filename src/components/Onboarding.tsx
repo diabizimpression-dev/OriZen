@@ -3,40 +3,39 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShieldCheck, Zap, Scale, ArrowRight, EyeOff } from "lucide-react";
-import gsap from "gsap";
 
 export default function Onboarding() {
   const [step, setStep] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const hasSeenOnboarding = localStorage.getItem("orizen_onboarding_seen");
-    if (!hasSeenOnboarding) {
-      setIsVisible(true);
+    if (typeof window !== "undefined") {
+      const hasSeen = localStorage.getItem("orizen_onboarding_seen");
+      if (!hasSeen) setIsVisible(true);
     }
   }, []);
 
   const steps = [
     {
       title: "VOTRE SÉCURITÉ D'ABORD",
-      desc: "OriZen est conçu pour être invisible. Vos données sont chiffrées localement et ne quittent jamais votre appareil.",
+      desc: "OriZen est conçu pour être invisible. Vos données sont chiffrées localement.",
       icon: EyeOff,
-      color: "text-cyber-pink",
-      bg: "bg-cyber-pink/10",
+      color: "text-[#FF007A]",
+      bg: "bg-[#FF007A10]",
     },
     {
       title: "ARSENAL JURIDIQUE",
-      desc: "Accédez instantanément à vos droits et aux articles de loi pour vous défendre face aux institutions.",
+      desc: "Accédez instantanément à vos droits et aux articles de loi.",
       icon: Scale,
-      color: "text-cyber-blue",
-      bg: "bg-cyber-blue/10",
+      color: "text-[#00E5FF]",
+      bg: "bg-[#00E5FF10]",
     },
     {
       title: "MODE PANIQUE",
-      desc: "En cas de danger, tapotez 3 fois l'écran pour masquer l'application derrière un site météo anodin.",
+      desc: "Tapotez 3 fois l'écran pour masquer l'application.",
       icon: Zap,
-      color: "text-cyber-green",
-      bg: "bg-cyber-green/10",
+      color: "text-[#00FF94]",
+      bg: "bg-[#00FF9410]",
     }
   ];
 
@@ -49,53 +48,39 @@ export default function Onboarding() {
     }
   };
 
+  if (!isVisible) return null;
+
   return (
-    <AnimatePresence>
-      {isVisible && (
+    <div className="fixed inset-0 z-[9999] bg-[#050B1F] flex flex-col items-center justify-center p-8">
+      <AnimatePresence mode="wait">
         <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[9999] bg-background flex flex-col items-center justify-center p-8"
+          key={step}
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 1.1, opacity: 0 }}
+          className="flex flex-col items-center text-center max-w-sm"
         >
-          <motion.div 
-            key={step}
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 1.1, opacity: 0, y: -20 }}
-            transition={{ type: "spring", damping: 20 }}
-            className="flex flex-col items-center text-center max-w-sm"
+          <div className={`w-24 h-24 ${steps[step].bg} rounded-3xl flex items-center justify-center mb-10 border border-white/10`}>
+            {step === 0 && <EyeOff size={48} className={steps[step].color} />}
+            {step === 1 && <Scale size={48} className={steps[step].color} />}
+            {step === 2 && <Zap size={48} className={steps[step].color} />}
+          </div>
+          
+          <h2 className="text-4xl font-bold mb-4 uppercase text-white">
+            {steps[step].title}
+          </h2>
+          <p className="text-slate-400 text-lg mb-12">
+            {steps[step].desc}
+          </p>
+
+          <button 
+            onClick={handleNext}
+            className="w-full py-5 bg-[#FF007A] text-white font-bold rounded-2xl"
           >
-            <div className={`w-24 h-24 ${steps[step].bg} rounded-4xl flex items-center justify-center mb-10 border-2 border-white/5`}>
-              <steps[step].icon size={48} className={steps[step].color} />
-            </div>
-            
-            <h2 className="text-4xl font-black font-heading leading-tight mb-4 italic tracking-tighter uppercase">
-              {steps[step].title}
-            </h2>
-            <p className="text-slate-400 text-lg leading-relaxed mb-12">
-              {steps[step].desc}
-            </p>
-
-            <button 
-              onClick={handleNext}
-              className="neon-button w-full flex items-center justify-center gap-3 py-5"
-            >
-              {step === steps.length - 1 ? "DÉMARRER ORIZEN" : "CONTINUER"}
-              <ArrowRight size={20} />
-            </button>
-
-            <div className="flex gap-2 mt-10">
-              {steps.map((_, i) => (
-                <div 
-                  key={i} 
-                  className={`h-1.5 rounded-full transition-all duration-300 ${i === step ? 'w-8 bg-cyber-blue' : 'w-2 bg-white/10'}`} 
-                />
-              ))}
-            </div>
-          </motion.div>
+            {step === 2 ? "DÉMARRER" : "CONTINUER"}
+          </button>
         </motion.div>
-      )}
-    </AnimatePresence>
+      </AnimatePresence>
+    </div>
   );
 }
