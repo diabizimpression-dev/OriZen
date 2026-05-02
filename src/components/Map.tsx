@@ -1,25 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { ArrowLeft, Navigation, Phone, MapPin, FileText, AlertCircle, CheckCircle } from "lucide-react";
+import { 
+  ArrowLeft, Navigation, Phone, MapPin, 
+  FileText, AlertCircle, CheckCircle, Zap,
+  Compass, Info, MoreVertical
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { SCENARIOS } from "../lib/scenarios";
 
-const DefaultIcon = L.icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
-L.Marker.prototype.options.icon = DefaultIcon;
-
-const BESOIN_META: Record<string, { label: string; color: string }> = {
-  logement:     { label: "Hébergement d'urgence",    color: "#6366F1" },
-  alimentation: { label: "Distribution alimentaire", color: "#10B981" },
-  sante:        { label: "Santé & Soins gratuits",   color: "#F59E0B" },
-  urgence:      { label: "Urgence",                  color: "#EF4444" },
-  tous:         { label: "Toutes les structures",    color: "#8B5CF6" },
+// Custom Neon Marker Creator
+const createNeonIcon = (color: string) => {
+  return L.divIcon({
+    className: "custom-neon-marker",
+    html: `
+      <div style="
+        width: 14px; 
+        height: 14px; 
+        background-color: ${color}; 
+        border: 2px solid white; 
+        border-radius: 50%; 
+        box-shadow: 0 0 15px ${color}, 0 0 5px white;
+      "></div>
+    `,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  });
 };
 
 interface Structure {
@@ -42,38 +51,34 @@ interface Structure {
 function MapUpdater({ center }: { center: [number, number] }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, 14);
+    map.flyTo(center, 15, { duration: 1.5 });
   }, [center, map]);
   return null;
-}
-
-function ReliabilityBadge({ score }: { score: number }) {
-  const color = score >= 80 ? "#10B981" : score >= 50 ? "#F59E0B" : "#EF4444";
-  const label = score >= 80 ? "Fiable" : score >= 50 ? "À vérifier" : "Non vérifié";
-  const Icon = score >= 80 ? CheckCircle : AlertCircle;
-  return (
-    <span
-      className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-      style={{ color, background: color + "18", border: `1px solid ${color}40` }}
-    >
-      <Icon size={10} />
-      {label} · {score}/100
-    </span>
-  );
 }
 
 interface MapProps {
   besoin?: string;
 }
 
-export default function Map({ besoin = "tous" }: MapProps) {
+export default function Map({ besoin: initialBesoin = "tous" }: MapProps) {
+  const [currentBesoin, setCurrentBesoin] = useState(initialBesoin);
   const [center, setCenter] = useState<[number, number]>([48.8566, 2.3522]);
   const [structures, setStructures] = useState<Structure[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dataSource, setDataSource] = useState<"osm" | "fallback" | null>(null);
-  const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
+  const [selectedStructure, setSelectedStructure] = useState<Structure | null>(null);
 
-  const meta = BESOIN_META[besoin] ?? BESOIN_META["tous"];
+  // One-click filters list from SCENARIOS
+  const filters = useMemo(() => {
+    return [
+      { id: "tous", label: "Tous", color: "#F8FAFC", icon: Compass },
+      ...Object.values(SCENARIOS).map(s => ({
+        id: s.id,
+        label: s.label,
+        color: s.color,
+        icon: s.id === "logement" ? Home : s.id === "alimentation" ? Utensils : Zap
+      }))
+    ];
+  }, []);
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -81,37 +86,33 @@ export default function Map({ besoin = "tous" }: MapProps) {
         (pos) => {
           const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
           setCenter(coords);
-          fetchStructures(coords[0], coords[1]);
+          fetchStructures(coords[0], coords[1], currentBesoin);
         },
-        () => fetchStructures(48.8566, 2.3522),
-        { timeout: 8000 }
+        () => fetchStructures(48.8566, 2.3522, currentBesoin),
+        { timeout: 5000 }
       );
     } else {
-      fetchStructures(48.8566, 2.3522);
+      fetchStructures(48.8566, 2.3522, currentBesoin);
     }
-  }, [besoin]);
+  }, [currentBesoin]);
 
-  const fetchStructures = (lat: number, lng: number) => {
+  const fetchStructures = (lat: number, lng: number, type: string) => {
     setLoading(true);
-    fetch(`/api/structures?lat=${lat}&lng=${lng}&type=${besoin}&radius=5000`)
+    fetch(`/api/structures?lat=${lat}&lng=${lng}&type=${type}&radius=5000`)
       .then((res) => res.json())
       .then((data) => {
         if (data.ok) {
           setStructures(data.structures);
-          setDataSource(data.source);
         }
       })
-      .catch((err) => console.error("Failed to fetch structures:", err))
+      .catch((err) => console.error(err))
       .finally(() => setLoading(false));
   };
 
-  const handleReport = (id: string) => {
-    setReportedIds((prev) => new Set(prev).add(id));
-    // Futur : POST /api/structures/report avec l'id
-  };
+  const activeMeta = SCENARIOS[currentBesoin] || { color: "#BC00FF", label: "Découverte" };
 
   return (
-    <div className="h-full w-full relative">
+    <div className="h-full w-full relative group/map">
       <MapContainer
         center={center}
         zoom={13}
@@ -120,153 +121,158 @@ export default function Map({ besoin = "tous" }: MapProps) {
       >
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          attribution='&copy; OpenStreetMap'
         />
         <MapUpdater center={center} />
 
         {structures.map((s) => (
-          <Marker key={s.id} position={[s.lat, s.lng]}>
-            <Popup maxWidth={260} className="orizen-popup">
-              <div className="text-slate-900 p-1" style={{ minWidth: "220px" }}>
-                {/* Nom + type */}
-                <h3 className="font-bold text-sm leading-tight mb-1">{s.name}</h3>
-                <p className="text-xs text-slate-500 mb-2 capitalize">{s.type}</p>
-
-                {/* Score fiabilité */}
-                {s.reliability_score !== undefined && (
-                  <div className="mb-2">
-                    <ReliabilityBadge score={s.reliability_score} />
-                    {s.verified_at && (
-                      <span className="text-xs text-slate-400 ml-2">
-                        Vérifié le {s.verified_at}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {/* Adresse */}
-                {s.addr && (
-                  <p className="text-xs text-slate-600 mb-1 flex items-start gap-1">
-                    <MapPin size={10} className="shrink-0 mt-0.5 text-slate-400" />
-                    {s.addr}
-                    {s.distance_m !== undefined && (
-                      <span className="text-slate-400 ml-1 font-medium">
-                        · {s.distance_m < 1000
-                          ? `${s.distance_m}m`
-                          : `${(s.distance_m / 1000).toFixed(1)}km`}
-                      </span>
-                    )}
-                  </p>
-                )}
-
-                {/* Horaires */}
-                {s.open && (
-                  <p className="text-xs text-green-700 font-medium mb-2">{s.open}</p>
-                )}
-
-                {/* Documents à apporter */}
-                {s.documents && s.documents.length > 0 && (
-                  <div className="mb-2 p-2 bg-amber-50 rounded-lg border border-amber-200">
-                    <p className="text-xs font-semibold text-amber-800 flex items-center gap-1 mb-1">
-                      <FileText size={10} />
-                      À apporter :
-                    </p>
-                    {s.documents.map((doc) => (
-                      <p key={doc} className="text-xs text-amber-700">· {doc}</p>
-                    ))}
-                  </div>
-                )}
-
-                {/* Script d'action */}
-                {s.action_script && (
-                  <div className="mb-3 p-2 bg-indigo-50 rounded-lg border border-indigo-200">
-                    <p className="text-xs text-indigo-800 italic">"{s.action_script}"</p>
-                  </div>
-                )}
-
-                {/* Boutons d'action */}
-                <div className="flex flex-col gap-1.5">
-                  {s.phone && (
-                    <a
-                      href={`tel:${s.phone.replace(/\s/g, "")}`}
-                      className="flex items-center justify-center gap-1.5 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition-colors"
-                    >
-                      <Phone size={12} />
-                      Appeler · {s.phone}
-                    </a>
-                  )}
-                  <a
-                    href={`https://maps.google.com/?daddr=${s.lat},${s.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-1.5 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold hover:bg-slate-200 transition-colors"
-                  >
-                    <Navigation size={12} />
-                    Itinéraire
-                  </a>
-                  {!reportedIds.has(s.id) ? (
-                    <button
-                      onClick={() => handleReport(s.id)}
-                      className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-slate-400 text-xs hover:text-slate-600 transition-colors"
-                    >
-                      <AlertCircle size={10} />
-                      Signaler une erreur
-                    </button>
-                  ) : (
-                    <p className="text-center text-xs text-green-600 py-1">Signalement reçu, merci</p>
-                  )}
-                </div>
-
-                {/* Source indicator */}
-                {s.source === "fallback" && (
-                  <p className="text-xs text-slate-400 text-center mt-2">
-                    Donnée de référence nationale
-                  </p>
-                )}
-              </div>
-            </Popup>
-          </Marker>
+          <Marker 
+            key={s.id} 
+            position={[s.lat, s.lng]} 
+            icon={createNeonIcon(SCENARIOS[s.type]?.color || "#BC00FF")}
+            eventHandlers={{
+              click: () => setSelectedStructure(s)
+            }}
+          />
         ))}
       </MapContainer>
 
-      {/* Header overlay */}
-      <div className="absolute top-4 left-4 right-4 z-[1000] flex items-center gap-3">
-        <button
-          onClick={() => (window.location.href = "/")}
-          className="p-2.5 bg-slate-900/90 backdrop-blur border border-slate-700 rounded-xl hover:bg-slate-800 transition-colors"
-        >
-          <ArrowLeft size={18} className="text-white" />
-        </button>
-        <div
-          className="flex-1 px-4 py-2.5 rounded-xl backdrop-blur border text-sm font-semibold"
-          style={{
-            background: "rgba(2,6,23,0.85)",
-            borderColor: meta.color + "40",
-            color: meta.color,
-          }}
-        >
-          {meta.label}
-          {dataSource === "osm" && (
-            <span className="ml-2 text-xs opacity-60 font-normal">· OpenStreetMap</span>
-          )}
+      {/* ONE-CLICK FILTERS (BOTTOM BAR) */}
+      <div className="absolute bottom-10 left-0 right-0 z-[1000] px-6 pointer-events-none">
+        <div className="max-w-4xl mx-auto overflow-x-auto no-scrollbar pointer-events-auto">
+          <motion.div 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="flex gap-3 pb-2"
+          >
+            {filters.slice(0, 6).map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setCurrentBesoin(f.id)}
+                className={`
+                  whitespace-nowrap px-6 py-3 rounded-2xl font-heading font-bold text-xs uppercase tracking-widest
+                  transition-all duration-300 border-2
+                  ${currentBesoin === f.id 
+                    ? "bg-white text-background border-white shadow-[0_0_20px_rgba(255,255,255,0.4)]" 
+                    : "glass-morph text-white border-white/10 hover:border-white/30"
+                  }
+                `}
+              >
+                {f.label}
+              </button>
+            ))}
+          </motion.div>
         </div>
-        {loading && (
-          <div className="p-2.5 bg-slate-900/90 backdrop-blur border border-slate-700 rounded-xl">
-            <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-          </div>
-        )}
       </div>
 
-      {/* Badge compteur */}
-      {!loading && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000]">
-          <div className="px-4 py-2 bg-slate-900/90 backdrop-blur border border-slate-700 rounded-full text-sm text-slate-300 flex items-center gap-2">
-            <Navigation size={14} className="text-indigo-400" />
-            {structures.length} structure{structures.length > 1 ? "s" : ""} trouvée{structures.length > 1 ? "s" : ""}
-            {dataSource === "fallback" && <span className="text-amber-400 text-xs">· réseau national</span>}
-          </div>
-        </div>
-      )}
+      {/* STRUCTURE PANEL (REPLACING POPUP FOR PREMIUM FEEL) */}
+      <AnimatePresence>
+        {selectedStructure && (
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="absolute top-0 right-0 bottom-0 w-full sm:w-[400px] z-[2001] bg-surface/95 backdrop-blur-2xl border-l border-surface-border p-8 flex flex-col shadow-2xl"
+          >
+            <button 
+              onClick={() => setSelectedStructure(null)}
+              className="absolute top-6 left-6 p-2 hover:bg-white/10 rounded-full transition-colors"
+            >
+              <ArrowLeft size={24} className="text-white" />
+            </button>
+
+            <div className="mt-12 flex-1 overflow-y-auto no-scrollbar">
+              <div 
+                className="w-16 h-16 rounded-3xl flex items-center justify-center mb-6"
+                style={{ backgroundColor: `${SCENARIOS[selectedStructure.type]?.color || "#BC00FF"}20`, border: `2px solid ${SCENARIOS[selectedStructure.type]?.color || "#BC00FF"}` }}
+              >
+                <Zap size={32} style={{ color: SCENARIOS[selectedStructure.type]?.color || "#BC00FF" }} />
+              </div>
+
+              <h2 className="text-3xl font-black font-heading text-white leading-tight mb-2">
+                {selectedStructure.name}
+              </h2>
+              <div className="flex items-center gap-3 mb-8">
+                <span className="text-xs font-black uppercase tracking-[0.2em]" style={{ color: SCENARIOS[selectedStructure.type]?.color || "#BC00FF" }}>
+                  {selectedStructure.type}
+                </span>
+                <span className="w-1 h-1 bg-slate-700 rounded-full"></span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                  {selectedStructure.distance_m ? `${(selectedStructure.distance_m / 1000).toFixed(1)} KM` : "Proche"}
+                </span>
+              </div>
+
+              <div className="grid gap-6">
+                <div className="flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
+                  <MapPin size={20} className="text-cyber-blue mt-1 shrink-0" />
+                  <div>
+                    <p className="text-xs font-black text-slate-500 uppercase mb-1">Localisation</p>
+                    <p className="text-sm font-bold text-white leading-relaxed">{selectedStructure.addr || "Adresse non spécifiée"}</p>
+                  </div>
+                </div>
+
+                {selectedStructure.open && (
+                  <div className="flex items-start gap-4 p-4 rounded-2xl bg-cyber-green/10 border border-cyber-green/20">
+                    <Clock size={20} className="text-cyber-green mt-1 shrink-0" />
+                    <div>
+                      <p className="text-xs font-black text-cyber-green uppercase mb-1">Horaires</p>
+                      <p className="text-sm font-bold text-white">{selectedStructure.open}</p>
+                    </div>
+                  </div>
+                )}
+
+                {selectedStructure.action_script && (
+                  <div className="p-6 rounded-3xl bg-cyber-purple/10 border border-cyber-purple/20 relative overflow-hidden group">
+                    <p className="text-xs font-black text-cyber-purple uppercase mb-3 flex items-center gap-2">
+                      <MessageCircle size={14} /> Script d'action
+                    </p>
+                    <p className="text-lg font-bold text-white italic leading-relaxed relative z-10">
+                      "{selectedStructure.action_script}"
+                    </p>
+                    <Zap size={80} className="absolute -bottom-4 -right-4 text-cyber-purple/5 group-hover:scale-110 transition-transform" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-8 grid grid-cols-2 gap-4">
+              {selectedStructure.phone && (
+                <a 
+                  href={`tel:${selectedStructure.phone}`}
+                  className="flex items-center justify-center gap-3 p-5 rounded-2xl bg-cyber-blue text-background font-black uppercase text-xs tracking-widest hover:shadow-cyber-blue transition-all active:scale-95"
+                >
+                  <Phone size={18} /> Appeler
+                </a>
+              )}
+              <a 
+                href={`https://maps.google.com/?daddr=${selectedStructure.lat},${selectedStructure.lng}`}
+                target="_blank"
+                className="flex items-center justify-center gap-3 p-5 rounded-2xl bg-white text-background font-black uppercase text-xs tracking-widest hover:shadow-white transition-all active:scale-95"
+              >
+                <Navigation size={18} /> Aller
+              </a>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* LOADING OVERLAY */}
+      <AnimatePresence>
+        {loading && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[1999] bg-background/40 backdrop-blur-sm flex items-center justify-center"
+          >
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-12 h-12 border-4 border-cyber-blue border-t-transparent rounded-full animate-spin" />
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Scanner en cours...</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
