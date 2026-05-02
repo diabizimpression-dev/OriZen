@@ -1,249 +1,211 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Home, Utensils, HeartPulse, MessageCircle,
-  ArrowRight, Clock, Phone, X
+import { 
+  Home, Utensils, HeartPulse, MessageCircle, 
+  ArrowRight, Clock, Phone, X, ShieldAlert,
+  Search, Zap, MapPin, Info
 } from "lucide-react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 
 const ACTIONS = [
   {
     id: "logement",
-    label: "Dormir",
-    sublabel: "Hébergement d'urgence",
+    label: "Hébergement",
+    desc: "Trouver un toit",
     icon: Home,
-    color: "#6366F1",
-    bg: "rgba(99,102,241,0.12)",
-    border: "rgba(99,102,241,0.3)",
+    color: "#00E5FF", // cyber-blue
+    span: "col-span-2 sm:col-span-1",
     href: "/carte?besoin=logement",
   },
   {
     id: "manger",
-    label: "Manger",
-    sublabel: "Distribution alimentaire",
+    label: "Alimentation",
+    desc: "Repas & colis",
     icon: Utensils,
-    color: "#10B981",
-    bg: "rgba(16,185,129,0.12)",
-    border: "rgba(16,185,129,0.3)",
+    color: "#00FF94", // cyber-green
+    span: "col-span-1",
     href: "/carte?besoin=alimentation",
   },
   {
     id: "soin",
-    label: "Se soigner",
-    sublabel: "Soins gratuits (PASS)",
+    label: "Santé",
+    desc: "Soins & PASS",
     icon: HeartPulse,
-    color: "#F59E0B",
-    bg: "rgba(245,158,11,0.12)",
-    border: "rgba(245,158,11,0.3)",
+    color: "#FFD600", // cyber-yellow
+    span: "col-span-1",
     href: "/carte?besoin=sante",
   },
   {
-    id: "parler",
-    label: "Parler",
-    sublabel: "Aide & conseils",
-    icon: MessageCircle,
-    color: "#8B5CF6",
-    bg: "rgba(139,92,246,0.12)",
-    border: "rgba(139,92,246,0.3)",
+    id: "assistant",
+    label: "Assistant IA",
+    desc: "Conseils immédiats",
+    icon: Zap,
+    color: "#BC00FF", // cyber-purple
+    span: "col-span-2",
     href: "/assistant",
   },
 ];
 
 const SOS_NUMBERS = [
   { label: "SAMU Social", number: "115", desc: "Hébergement d'urgence" },
-  { label: "Police", number: "17", desc: "Danger, agression" },
-  { label: "Violences", number: "3919", desc: "Violences conjugales" },
-  { label: "SAMU", number: "15", desc: "Urgence médicale" },
+  { label: "Police Secours", number: "17", desc: "Danger ou agression" },
+  { label: "Violences Femmes", number: "3919", desc: "Écoute & orientation" },
+  { label: "SAMU Médical", number: "15", desc: "Urgence vitale" },
 ];
 
 export default function HomePage() {
-  const [lastVisit, setLastVisit] = useState<string | null>(null);
-  const [activeAction, setActiveAction] = useState<string | null>(null);
   const [sosOpen, setSosOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    setLastVisit(localStorage.getItem("orizen_last_action"));
-  }, []);
-
-  const handleAction = (actionId: string, href: string) => {
-    setActiveAction(actionId);
-    localStorage.setItem("orizen_last_action", actionId);
-    setTimeout(() => {
-      window.location.href = href;
-    }, 160);
-  };
-
-  const lastActionLabel = ACTIONS.find((a) => a.id === lastVisit)?.label;
+  useGSAP(() => {
+    gsap.from(".bento-item", {
+      y: 50,
+      opacity: 0,
+      duration: 0.8,
+      stagger: 0.1,
+      ease: "expo.out",
+    });
+  }, { scope: containerRef });
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white flex flex-col">
-      {/* BOUTON URGENCE — EN PREMIER, pleine largeur, rouge plein */}
-      <div className="w-full px-4 pt-5 pb-2">
-        <motion.button
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={() => setSosOpen(true)}
-          className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-bold text-base transition-colors shadow-lg shadow-red-900/40"
+    <div className="min-h-screen bg-background flex flex-col selection:bg-cyber-pink overflow-x-hidden" ref={containerRef}>
+      
+      {/* HEADER DISCRET */}
+      <header className="px-6 py-4 flex justify-between items-center glass-morph sticky top-0 z-40">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-cyber-pink rounded-lg flex items-center justify-center font-heading font-black text-xl italic shadow-cyber-pink">O</div>
+          <span className="font-heading font-bold text-xl tracking-tighter">ORIZEN</span>
+        </div>
+        <div className="flex gap-4">
+          <Link href="/carte" className="p-2 rounded-full hover:bg-white/10 transition-colors">
+            <MapPin size={20} className="text-cyber-blue" />
+          </Link>
+          <button className="p-2 rounded-full hover:bg-white/10 transition-colors">
+            <Search size={20} className="text-slate-400" />
+          </button>
+        </div>
+      </header>
+
+      {/* HERO SECTION */}
+      <section className="px-6 pt-10 pb-6">
+        <motion.h1 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="text-5xl font-black font-heading leading-none mb-4"
         >
-          <span className="text-xl">🚨</span>
-          Urgence — Danger immédiat
-        </motion.button>
+          PRENEZ <br/>
+          <span className="cyber-gradient-text">LE CONTRÔLE.</span>
+        </motion.h1>
+        <p className="text-slate-400 text-lg max-w-[280px] leading-snug">
+          Solutions immédiates pour vos droits et votre sécurité.
+        </p>
+      </section>
+
+      {/* EMERGENCY TRIGGER */}
+      <div className="px-6 mb-8">
+        <button 
+          onClick={() => setSosOpen(true)}
+          className="neon-button w-full flex items-center justify-between group"
+        >
+          <div className="flex items-center gap-3">
+            <ShieldAlert className="animate-pulse" />
+            <span className="uppercase tracking-widest text-sm font-black">Besoin d'aide urgente ?</span>
+          </div>
+          <ArrowRight className="group-hover:translate-x-1 transition-transform" />
+        </button>
       </div>
 
-      {/* Modale SOS Numbers */}
+      {/* BENTO GRID ACTIONS */}
+      <section className="px-6 grid grid-cols-2 gap-4 mb-10 flex-1">
+        {ACTIONS.map((action) => (
+          <Link 
+            key={action.id} 
+            href={action.href}
+            className={`bento-item cyber-card flex flex-col justify-between ${action.span} group`}
+            style={{ '--hover-color': action.color } as any}
+          >
+            <div 
+              className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 group-hover:rotate-3"
+              style={{ backgroundColor: `${action.color}20`, border: `1px solid ${action.color}40` }}
+            >
+              <action.icon size={24} style={{ color: action.color }} />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold mb-1" style={{ color: action.color }}>{action.label}</h3>
+              <p className="text-slate-500 text-xs font-medium uppercase tracking-wider">{action.desc}</p>
+            </div>
+            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Zap size={16} style={{ color: action.color }} />
+            </div>
+          </Link>
+        ))}
+      </section>
+
+      {/* FOOTER INFO */}
+      <footer className="px-6 py-8 border-t border-surface-border bg-surface/50">
+        <div className="flex justify-between items-center mb-6">
+          <Link href="/droits" className="text-sm font-bold text-slate-400 hover:text-cyber-blue transition-colors flex items-center gap-2">
+            <Info size={16} /> Vos Droits
+          </Link>
+          <Link href="/vault" className="text-sm font-bold text-slate-400 hover:text-cyber-pink transition-colors">
+            Vault Sécurisé
+          </Link>
+        </div>
+        <p className="text-[10px] text-slate-600 uppercase tracking-[0.2em] text-center">
+          OriZen © 2026 · Navigation Sécurisée & Anonyme
+        </p>
+      </footer>
+
+      {/* SOS MODAL */}
       <AnimatePresence>
         {sosOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end"
-            onClick={() => setSosOpen(false)}
-          >
-            <motion.div
-              initial={{ y: 80, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 80, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full bg-slate-900 border-t border-slate-700 rounded-t-3xl px-5 pt-5 pb-8"
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSosOpen(false)}
+              className="fixed inset-0 bg-background/90 backdrop-blur-xl z-50 p-6 flex flex-col"
             >
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="font-bold text-white text-lg">Appel d'urgence</h2>
-                <button
-                  onClick={() => setSosOpen(false)}
-                  className="p-2 rounded-xl hover:bg-slate-800 transition-colors"
-                >
-                  <X size={18} className="text-slate-400" />
+              <div className="flex justify-between items-center mb-10">
+                <h2 className="text-3xl font-black font-heading text-cyber-pink italic">URGENCE SOS</h2>
+                <button onClick={() => setSosOpen(false)} className="p-3 bg-white/5 rounded-full">
+                  <X size={24} />
                 </button>
               </div>
-              <div className="flex flex-col gap-3">
-                {SOS_NUMBERS.map((s) => (
-                  <a
-                    key={s.number}
-                    href={`tel:${s.number}`}
-                    className="flex items-center justify-between p-4 rounded-2xl bg-red-950/60 border border-red-800/50 hover:bg-red-900/50 transition-colors active:scale-98"
+
+              <div className="grid gap-4">
+                {SOS_NUMBERS.map((sos, i) => (
+                  <motion.a
+                    key={sos.number}
+                    href={`tel:${sos.number}`}
+                    initial={{ x: 50, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="flex items-center justify-between p-6 rounded-3xl bg-surface border border-red-500/30 hover:border-red-500 transition-all active:scale-95 group"
                   >
                     <div>
-                      <p className="font-bold text-white">{s.label}</p>
-                      <p className="text-xs text-slate-400">{s.desc}</p>
+                      <p className="text-2xl font-black font-heading text-white group-hover:text-red-500 transition-colors">{sos.number}</p>
+                      <p className="text-slate-400 text-sm font-bold uppercase">{sos.label}</p>
                     </div>
-                    <div className="flex items-center gap-2 text-red-400">
-                      <Phone size={16} />
-                      <span className="font-bold text-lg">{s.number}</span>
-                    </div>
-                  </a>
+                    <Phone className="text-red-500 animate-bounce" size={28} />
+                  </motion.a>
                 ))}
               </div>
-              <p className="text-center text-xs text-slate-600 mt-5">
-                Tous ces numéros sont gratuits · disponibles 24h/24
-              </p>
+
+              <div className="mt-auto text-center p-6 bg-red-500/10 rounded-3xl border border-red-500/20">
+                <p className="text-xs text-red-400 font-bold leading-relaxed">
+                  SI VOUS ÊTES EN DANGER DE MORT IMMÉDIAT, APPELEZ LE 15 OU LE 17 SANS ATTENDRE.
+                </p>
+              </div>
             </motion.div>
-          </motion.div>
+          </>
         )}
       </AnimatePresence>
-
-      {/* Contenu principal */}
-      <main className="flex-1 flex flex-col items-center px-4 py-4 max-w-lg mx-auto w-full">
-        {/* Titre */}
-        <motion.div
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="text-center mb-6"
-        >
-          <h1 className="text-3xl font-bold tracking-tight mb-1 bg-gradient-to-b from-white to-slate-400 bg-clip-text text-transparent">
-            De quoi avez-vous besoin ?
-          </h1>
-          <p className="text-slate-500 text-sm">Sélectionnez pour trouver une aide immédiate.</p>
-        </motion.div>
-
-        {/* Grid 2x2 */}
-        <div className="grid grid-cols-2 gap-3 w-full mb-5">
-          {ACTIONS.map((action, i) => {
-            const Icon = action.icon;
-            const isActive = activeAction === action.id;
-            return (
-              <motion.button
-                key={action.id}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.08 + i * 0.06 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => handleAction(action.id, action.href)}
-                className="relative flex flex-col items-start p-4 rounded-2xl border transition-all text-left group overflow-hidden"
-                style={{
-                  background: isActive ? action.color + "30" : action.bg,
-                  borderColor: isActive ? action.color : action.border,
-                }}
-              >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center mb-2.5 transition-transform group-hover:scale-110"
-                  style={{ background: action.color + "25" }}
-                >
-                  <Icon size={20} style={{ color: action.color }} />
-                </div>
-                <p className="font-bold text-base leading-tight" style={{ color: action.color }}>
-                  {action.label}
-                </p>
-                <p className="text-xs text-slate-400 mt-0.5 leading-tight">{action.sublabel}</p>
-                <ArrowRight
-                  size={13}
-                  className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ color: action.color }}
-                />
-              </motion.button>
-            );
-          })}
-        </div>
-
-        {/* Dernière visite */}
-        <AnimatePresence>
-          {lastActionLabel && (
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="w-full flex items-center gap-3 p-3.5 rounded-xl border border-slate-800 bg-slate-900/50 mb-4"
-            >
-              <Clock size={15} className="text-slate-500 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-slate-500">Dernière aide consultée</p>
-                <p className="text-sm font-semibold text-slate-300">{lastActionLabel}</p>
-              </div>
-              <button
-                onClick={() => {
-                  const action = ACTIONS.find((a) => a.id === lastVisit);
-                  if (action) handleAction(action.id, action.href);
-                }}
-                className="text-xs text-indigo-400 font-bold hover:text-indigo-300 transition whitespace-nowrap"
-              >
-                Continuer →
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Lien discret droits */}
-        <p className="text-xs text-slate-600 text-center">
-          Besoin d'informations ?{" "}
-          <Link
-            href="/droits"
-            className="text-slate-400 hover:text-white underline underline-offset-2 transition"
-          >
-            Vos droits
-          </Link>
-          {" · "}
-          <Link
-            href="/assistant"
-            className="text-slate-400 hover:text-white underline underline-offset-2 transition"
-          >
-            Assistant
-          </Link>
-        </p>
-      </main>
     </div>
   );
 }
