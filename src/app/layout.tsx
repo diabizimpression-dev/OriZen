@@ -1,22 +1,24 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, Inter } from "next/font/google";
 import "./static-tailwind.css";
+import { DiscreetProvider } from "@/components/DiscreetMode";
+import Onboarding from "@/components/Onboarding";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-space-grotesk",
-  weight: ["500", "600", "700"],
+  weight: ["300", "400", "500", "600", "700", "900"],
 });
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
-  weight: ["400", "600"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "OriZen | Premium Social Aid",
-  description: "Accès universel à l'aide sociale et aux services d'urgence.",
+  title: "ORIZEN | Premium Social Arsenal",
+  description: "L'arsenal juridique et humanitaire pour vos droits fondamentaux.",
 };
 
 export default function RootLayout({
@@ -26,8 +28,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className="dark">
-      <body className={`${spaceGrotesk.variable} ${inter.variable} antialiased bg-[#020617] text-slate-50 min-h-screen`}>
-        {children}
+      <body className={`${spaceGrotesk.variable} ${inter.variable} antialiased bg-background text-foreground min-h-screen selection:bg-cyber-pink selection:text-white`}>
+        <DiscreetProvider>
+          <Onboarding />
+          {children}
+        </DiscreetProvider>
       </body>
     </html>
   );
