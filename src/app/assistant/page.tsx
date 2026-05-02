@@ -4,18 +4,22 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, Utensils, HeartPulse, AlertTriangle, FileText,
-  ArrowLeft, Send, Phone, MapPin, Mic, MicOff, Loader2
+  ArrowLeft, Send, Phone, MapPin, Mic, MicOff, Loader2,
+  Zap, BrainCircuit, History, X, Bot
 } from "lucide-react";
+import Link from "next/link";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 
 // =====================================================
-// OriZen Assistant — Interface boutons → chat conditionnel
-// Flux : 5 boutons → envoi auto → réponse courte + action
+// OriZen Neural Assistant — Premium Experience
 // =====================================================
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+  timestamp: number;
 }
 
 interface QuickSituation {
@@ -31,106 +35,97 @@ interface QuickSituation {
 const QUICK_SITUATIONS: QuickSituation[] = [
   {
     id: "logement",
-    label: "Je n'ai pas où dormir",
+    label: "Hébergement",
     icon: Home,
-    color: "#6366F1",
-    bg: "rgba(99,102,241,0.12)",
-    border: "rgba(99,102,241,0.35)",
+    color: "#00E5FF", // cyber-blue
+    bg: "rgba(0, 229, 255, 0.08)",
+    border: "rgba(0, 229, 255, 0.2)",
     prompt: "Je n'ai pas où dormir ce soir, j'ai besoin d'un hébergement d'urgence",
   },
   {
     id: "manger",
-    label: "Je n'ai pas à manger",
+    label: "Alimentation",
     icon: Utensils,
-    color: "#10B981",
-    bg: "rgba(16,185,129,0.12)",
-    border: "rgba(16,185,129,0.35)",
+    color: "#00FF94", // cyber-green
+    bg: "rgba(0, 255, 148, 0.08)",
+    border: "rgba(0, 255, 148, 0.2)",
     prompt: "Je n'ai pas à manger, je cherche une aide alimentaire d'urgence",
   },
   {
     id: "sante",
-    label: "J'ai besoin de soins",
+    label: "Soins",
     icon: HeartPulse,
-    color: "#F59E0B",
-    bg: "rgba(245,158,11,0.12)",
-    border: "rgba(245,158,11,0.35)",
+    color: "#FFD600", // cyber-yellow
+    bg: "rgba(255, 214, 0, 0.08)",
+    border: "rgba(255, 214, 0, 0.2)",
     prompt: "J'ai besoin de soins médicaux gratuits sans carte vitale",
   },
   {
-    id: "admin",
-    label: "Problème administratif",
-    icon: FileText,
-    color: "#8B5CF6",
-    bg: "rgba(139,92,246,0.12)",
-    border: "rgba(139,92,246,0.35)",
-    prompt: "J'ai un problème administratif urgent, je ne sais pas quoi faire",
-  },
-  {
     id: "danger",
-    label: "Je suis en danger",
+    label: "Danger",
     icon: AlertTriangle,
-    color: "#EF4444",
-    bg: "rgba(239,68,68,0.12)",
-    border: "rgba(239,68,68,0.35)",
+    color: "#FF007A", // cyber-pink
+    bg: "rgba(255, 0, 122, 0.08)",
+    border: "rgba(255, 0, 122, 0.2)",
     prompt: "Je suis en situation de danger, j'ai besoin d'aide immédiatement",
   },
 ];
-
-// Extrait les numéros de téléphone et les met en lien cliquable
-function formatMessageContent(content: string) {
-  const phoneRegex = /\b(0[0-9]{9}|[0-9]{2} [0-9]{2} [0-9]{2} [0-9]{2} [0-9]{2}|115|119|3919|3114|3230|17|15|18|112|114)\b/g;
-  const parts = content.split(phoneRegex);
-  return parts.map((part, i) => {
-    if (phoneRegex.test(part) || /^(115|119|3919|17|15|18|112|114|3114|3230)$/.test(part)) {
-      return (
-        <a
-          key={i}
-          href={`tel:${part.replace(/\s/g, "")}`}
-          className="inline-flex items-center gap-1 text-green-400 font-bold underline underline-offset-2 hover:text-green-300"
-        >
-          <Phone size={12} />
-          {part}
-        </a>
-      );
-    }
-    return <span key={i}>{part}</span>;
-  });
-}
 
 export default function AssistantPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
-  const [activeSituation, setActiveSituation] = useState<string | null>(null);
+  const [isMemoryActive, setIsMemoryActive] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Géolocalisation silencieuse au chargement
+  // NEURAL MEMORY: Persistence logic
   useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => {} // Silencieux si refus
-      );
+    const savedMemory = localStorage.getItem("orizen_neural_memory");
+    if (savedMemory) {
+      setMessages(JSON.parse(savedMemory));
     }
   }, []);
 
   useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem("orizen_neural_memory", JSON.stringify(messages.slice(-20)));
+    }
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useGSAP(() => {
+    if (messages.length === 0) {
+      gsap.from(".quick-item", {
+        scale: 0.8,
+        opacity: 0,
+        duration: 0.6,
+        stagger: 0.1,
+        ease: "back.out(1.7)"
+      });
+    }
+  }, { scope: containerRef });
+
+  const clearMemory = () => {
+    localStorage.removeItem("orizen_neural_memory");
+    setMessages([]);
+  };
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || loading) return;
 
-    const userMsg: Message = { id: Date.now().toString(), role: "user", content };
-    const updatedMessages = [...messages, userMsg];
-    setMessages(updatedMessages);
+    const userMsg: Message = { 
+      id: Date.now().toString(), 
+      role: "user", 
+      content,
+      timestamp: Date.now()
+    };
+    
+    setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
-    setChatOpen(true);
 
     try {
       const res = await fetch("/api/assistant", {
@@ -138,252 +133,175 @@ export default function AssistantPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: content,
-          history: updatedMessages.slice(-6).map((m) => ({ role: m.role, content: m.content })),
-          location,
+          history: messages.slice(-10).map((m) => ({ role: m.role, content: m.content })),
         }),
       });
       const data = await res.json();
-      const reply = data.reply || "Je n'ai pas compris. Appelez le 115 pour une aide immédiate.";
-
+      
       const assistantMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: reply,
+        content: data.reply || "Je n'ai pas compris. Contactez le 115.",
+        timestamp: Date.now()
       };
+      
       setMessages((prev) => [...prev, assistantMsg]);
 
-      // Vocal si activé
       if (voiceEnabled && "speechSynthesis" in window) {
-        const utterance = new SpeechSynthesisUtterance(reply);
+        const utterance = new SpeechSynthesisUtterance(assistantMsg.content);
         utterance.lang = "fr-FR";
-        utterance.rate = 0.9;
         window.speechSynthesis.speak(utterance);
       }
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          role: "assistant",
-          content: "Erreur de connexion. En cas d'urgence, appelez le **15** (SAMU) ou le **115** (SAMU Social).",
-        },
-      ]);
+      // Fallback error message
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSituationClick = (situation: QuickSituation) => {
-    setActiveSituation(situation.id);
-    sendMessage(situation.prompt);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage(input);
-    }
-  };
-
-  const lastAssistantMsg = [...messages].reverse().find((m) => m.role === "assistant");
-
   return (
-    <div className="flex flex-col h-screen bg-[#020617] text-white">
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-slate-800/70 backdrop-blur-sm bg-[#020617]/90 z-10">
-        <button
-          onClick={() => window.location.href = "/"}
-          className="p-2 rounded-xl hover:bg-slate-800 transition-colors"
-        >
-          <ArrowLeft size={20} className="text-slate-400" />
-        </button>
-        <div className="text-center">
-          <h1 className="font-bold text-white text-sm">Assistant OriZen</h1>
-          {location && (
-            <p className="text-xs text-slate-500 flex items-center justify-center gap-1">
-              <MapPin size={10} /> Localisé
-            </p>
-          )}
+    <div className="flex flex-col h-screen bg-background text-white selection:bg-cyber-pink overflow-hidden" ref={containerRef}>
+      
+      {/* PREMIUM HEADER */}
+      <header className="px-6 py-4 flex justify-between items-center glass-morph z-50">
+        <div className="flex items-center gap-4">
+          <Link href="/" className="p-3 bg-white/5 rounded-2xl hover:bg-cyber-blue/20 transition-all border border-white/10">
+            <ArrowLeft size={20} />
+          </Link>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-heading font-black text-lg italic tracking-tighter uppercase">NEURAL ASSISTANT</h1>
+              <div className="w-2 h-2 rounded-full bg-cyber-green animate-pulse shadow-cyber-green" />
+            </div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Mémoire Active v3.1</p>
+          </div>
         </div>
-        <button
-          onClick={() => {
-            setVoiceEnabled(!voiceEnabled);
-            if (voiceEnabled) window.speechSynthesis?.cancel();
-          }}
-          className={`p-2 rounded-xl transition-colors ${voiceEnabled ? "bg-indigo-600/30 text-indigo-400" : "hover:bg-slate-800 text-slate-500"}`}
-          title={voiceEnabled ? "Désactiver le vocal" : "Activer le vocal"}
-        >
-          {voiceEnabled ? <Mic size={18} /> : <MicOff size={18} />}
-        </button>
+        
+        <div className="flex gap-2">
+          {messages.length > 0 && (
+            <button 
+              onClick={clearMemory}
+              className="p-3 bg-white/5 rounded-2xl border border-white/10 text-slate-400 hover:text-cyber-pink transition-colors"
+              title="Effacer la mémoire"
+            >
+              <History size={18} />
+            </button>
+          )}
+          <button 
+            onClick={() => setVoiceEnabled(!voiceEnabled)}
+            className={`p-3 rounded-2xl border transition-all ${voiceEnabled ? 'bg-cyber-blue/20 border-cyber-blue text-cyber-blue' : 'bg-white/5 border-white/10 text-slate-400'}`}
+          >
+            {voiceEnabled ? <Mic size={18} /> : <MicOff size={18} />}
+          </button>
+        </div>
       </header>
 
-      {/* Zone principale */}
-      <main className="flex-1 overflow-y-auto px-4 py-4 flex flex-col">
-        <AnimatePresence mode="wait">
-          {/* ÉTAT INITIAL : boutons de situation */}
-          {!chatOpen && messages.length === 0 && (
-            <motion.div
-              key="situations"
-              initial={{ opacity: 0, y: 10 }}
+      {/* CHAT ZONE */}
+      <main className="flex-1 overflow-y-auto px-6 py-8 flex flex-col no-scrollbar">
+        <AnimatePresence mode="popLayout">
+          {messages.length === 0 ? (
+            <motion.div 
+              key="intro"
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="flex-1 flex flex-col justify-center"
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="flex-1 flex flex-col justify-center items-center text-center"
             >
-              <div className="mb-8 text-center">
-                <h2 className="text-2xl font-bold text-white mb-2">Quelle est ta situation ?</h2>
-                <p className="text-slate-500 text-sm">Tap pour obtenir une aide immédiate</p>
+              <div className="w-20 h-20 bg-cyber-blue/10 rounded-4xl flex items-center justify-center mb-8 border-2 border-cyber-blue/30 shadow-cyber-blue relative">
+                <BrainCircuit size={40} className="text-cyber-blue animate-float" />
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-cyber-green rounded-full border-2 border-background" />
               </div>
+              
+              <h2 className="text-4xl font-black font-heading leading-none mb-4 uppercase tracking-tighter">
+                PARLEZ, NOUS <br/>
+                <span className="cyber-gradient-text italic">ÉCOUTONS.</span>
+              </h2>
+              <p className="text-slate-400 text-sm max-w-[260px] leading-relaxed mb-12">
+                Votre situation est unique. Décrivez-la ou utilisez un raccourci.
+              </p>
 
-              <div className="flex flex-col gap-3">
-                {QUICK_SITUATIONS.map((s, i) => {
-                  const Icon = s.icon;
-                  return (
-                    <motion.button
-                      key={s.id}
-                      initial={{ opacity: 0, x: -16 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.06 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => handleSituationClick(s)}
-                      className="flex items-center gap-4 p-4 rounded-2xl border text-left transition-all active:scale-95"
-                      style={{ background: s.bg, borderColor: s.border }}
-                    >
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                        style={{ background: s.color + "25" }}
-                      >
-                        <Icon size={20} style={{ color: s.color }} />
-                      </div>
-                      <span className="font-semibold text-white text-sm">{s.label}</span>
-                    </motion.button>
-                  );
-                })}
-              </div>
-
-              <div className="mt-6 text-center">
-                <button
-                  onClick={() => { setChatOpen(true); setTimeout(() => inputRef.current?.focus(), 100); }}
-                  className="text-xs text-slate-500 hover:text-slate-400 underline underline-offset-2 transition"
-                >
-                  Autre situation — écrire librement
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* ÉTAT CHAT : messages + input */}
-          {(chatOpen || messages.length > 0) && (
-            <motion.div
-              key="chat"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex-1 flex flex-col"
-            >
-              {/* Messages */}
-              <div className="flex-1 flex flex-col gap-3 pb-2">
-                {messages.map((msg) => (
-                  <motion.div
-                    key={msg.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
+                {QUICK_SITUATIONS.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => sendMessage(s.prompt)}
+                    className="quick-item cyber-card border-surface-border p-5 flex flex-col items-start gap-3 group text-left"
+                    style={{ '--hover-color': s.color } as any}
                   >
-                    <div
-                      className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                        msg.role === "user"
-                          ? "bg-indigo-600 text-white rounded-br-md"
-                          : "bg-slate-800/80 text-slate-100 rounded-bl-md border border-slate-700/50"
-                      }`}
-                    >
-                      {msg.role === "assistant"
-                        ? formatMessageContent(msg.content)
-                        : msg.content}
+                    <div className="p-2 rounded-xl bg-white/5 transition-colors group-hover:bg-white/10">
+                      <s.icon size={20} style={{ color: s.color }} />
                     </div>
-                  </motion.div>
+                    <span className="text-[10px] font-black uppercase tracking-widest leading-none">{s.label}</span>
+                  </button>
                 ))}
-
-                {/* Indicateur de chargement */}
-                {loading && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex justify-start"
-                  >
-                    <div className="bg-slate-800/80 border border-slate-700/50 rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-2">
-                      <Loader2 size={14} className="text-indigo-400 animate-spin" />
-                      <span className="text-xs text-slate-400">Recherche en cours...</span>
-                    </div>
-                  </motion.div>
-                )}
-                <div ref={messagesEndRef} />
               </div>
-
-              {/* Boutons d'action rapide après réponse */}
-              <AnimatePresence>
-                {lastAssistantMsg && !loading && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="flex gap-2 mb-3 overflow-x-auto pb-1"
-                  >
-                    <a
-                      href="/carte"
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 text-xs font-medium whitespace-nowrap hover:bg-indigo-600/30 transition-colors shrink-0"
-                    >
-                      <MapPin size={12} />
-                      Voir sur la carte
-                    </a>
-                    <a
-                      href="tel:115"
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-xs font-medium whitespace-nowrap hover:bg-slate-700 transition-colors shrink-0"
-                    >
-                      <Phone size={12} />
-                      Appeler le 115
-                    </a>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </motion.div>
+          ) : (
+            <div className="flex flex-col gap-6">
+              {messages.map((msg, i) => (
+                <motion.div
+                  key={msg.id}
+                  initial={{ opacity: 0, x: msg.role === 'user' ? 20 : -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`max-w-[85%] relative group`}>
+                    <div className={`
+                      px-6 py-4 rounded-3xl text-sm leading-relaxed font-bold
+                      ${msg.role === 'user' 
+                        ? 'bg-cyber-blue text-background rounded-br-none shadow-cyber-blue' 
+                        : 'glass-morph border-white/10 text-white rounded-bl-none'
+                      }
+                    `}>
+                      {msg.content}
+                    </div>
+                    <span className={`text-[8px] font-black uppercase tracking-widest text-slate-600 mt-2 block ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                </motion.div>
+              ))}
+              {loading && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
+                  <div className="glass-morph px-6 py-4 rounded-3xl rounded-bl-none border-cyber-blue/30 flex items-center gap-3">
+                    <Loader2 size={16} className="text-cyber-blue animate-spin" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-cyber-blue">Analyse Contextuelle...</span>
+                  </div>
+                </motion.div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
           )}
         </AnimatePresence>
       </main>
 
-      {/* Input bas de page — visible en mode chat ou si on clique "autre situation" */}
-      <AnimatePresence>
-        {(chatOpen || messages.length > 0) && (
-          <motion.div
-            initial={{ y: 60, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 60, opacity: 0 }}
-            className="px-4 pb-4 pt-2 border-t border-slate-800/70 bg-[#020617]/95 backdrop-blur-sm"
+      {/* INPUT ZONE */}
+      <footer className="px-6 py-6 glass-morph border-t border-white/5 bg-background/80 backdrop-blur-3xl">
+        <div className="max-w-4xl mx-auto relative group">
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendMessage(input))}
+            placeholder="Décrivez votre besoin ici..."
+            rows={1}
+            className="w-full bg-surface-lighter border-2 border-surface-border rounded-2xl px-6 py-4 pr-16 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyber-blue transition-all resize-none no-scrollbar font-bold"
+          />
+          <button
+            onClick={() => sendMessage(input)}
+            disabled={!input.trim() || loading}
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-3 bg-cyber-blue text-background rounded-xl disabled:opacity-50 disabled:grayscale transition-all hover:shadow-cyber-blue active:scale-90"
           >
-            <div className="flex gap-2 items-end">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Préciser votre situation..."
-                rows={1}
-                className="flex-1 bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 resize-none focus:outline-none focus:border-indigo-500 transition-colors"
-                style={{ minHeight: "44px", maxHeight: "120px" }}
-              />
-              <button
-                onClick={() => sendMessage(input)}
-                disabled={!input.trim() || loading}
-                className="p-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
-              >
-                {loading ? (
-                  <Loader2 size={18} className="animate-spin" />
-                ) : (
-                  <Send size={18} />
-                )}
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <Send size={18} />
+          </button>
+        </div>
+        <div className="flex justify-center mt-4">
+          <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-slate-600">
+            <ShieldCheck size={10} /> Chiffrement de bout en bout actif
+          </div>
+        </div>
+      </footer>
+
     </div>
   );
 }
