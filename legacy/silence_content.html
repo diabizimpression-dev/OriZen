@@ -1,0 +1,94 @@
+    <!-- CAMOUFLAGE HEADER -->
+    <div id="camoHeader" class="oz-animate-slide-up" style="margin-top: 40px;">
+        <div style="background: var(--oz-color-surface-soft); padding: 40px; border-radius: 30px; border: 2px dashed var(--oz-color-border);">
+            <div style="font-size: 4rem; margin-bottom: 20px;">🤫</div>
+            <h1 style="font-size: 1.5rem; font-weight: 800; color: var(--oz-color-secondary);" data-i18n="silence_active_title">Mode Discret Activé</h1>
+            <p style="color: var(--oz-color-text-soft); font-size: 0.9rem; margin-top: 10px;" data-i18n="silence_active_desc">
+                Cette page te permet de naviguer en toute sécurité si quelqu'un surveille ton téléphone.
+            </p>
+        </div>
+    </div>
+
+    <!-- CAMOUFLAGE TRIGGER -->
+    <div class="oz-mt-12 oz-animate-slide-up" style="animation-delay: 0.2s;">
+        <h2 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 20px;" data-i18n="camo_title">Choisis ton camouflage :</h2>
+        <div class="oz-grid oz-grid-1 oz-gap-4">
+            <button onclick="activateCamo('weather')" class="oz-btn oz-btn-outline oz-flex oz-center" style="gap: 12px; height: 70px;">
+                <span style="font-size: 1.5rem;">🌤️</span> 
+                <span style="flex: 1; text-align: left;" data-i18n="camo_weather">Ressembler à une application Météo</span>
+            </button>
+            <button onclick="activateCamo('calc')" class="oz-btn oz-btn-outline oz-flex oz-center" style="gap: 12px; height: 70px;">
+                <span style="font-size: 1.5rem;">🔢</span> 
+                <span style="flex: 1; text-align: left;" data-i18n="camo_calc">Ressembler à une Calculatrice</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- CAMOUFLAGE OVERLAY (HIDDEN BY DEFAULT) -->
+    <div id="camoOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5000; background: white;">
+        <!-- Weather Template -->
+        <div id="camoWeather" style="display: none; padding: 40px; text-align: center; font-family: sans-serif; color: #333;">
+            <div style="font-size: 5rem;">🌤️</div>
+            <div style="font-size: 3rem; font-weight: 300;">18°C</div>
+            <div style="font-size: 1.2rem; margin-top: 10px; color: #666;">Paris, France</div>
+            <div style="margin-top: 40px; text-align: left; background: #f8f9fa; padding: 20px; border-radius: 15px;">
+                <div style="display:flex; justify-content: space-between; margin-bottom: 10px;"><span>Demain</span><span>🌤️ 19°C</span></div>
+                <div style="display:flex; justify-content: space-between; margin-bottom: 10px;"><span>Jeudi</span><span>🌧️ 14°C</span></div>
+                <div style="display:flex; justify-content: space-between;"><span>Vendredi</span><span>☀️ 22°C</span></div>
+            </div>
+            <p style="margin-top: 40px; font-size: 0.8rem; color: #999;">Dernière mise à jour : il y a 5 min</p>
+        </div>
+
+        <!-- Calc Template -->
+        <div id="camoCalc" style="display: none; padding: 20px; font-family: monospace; background: #000; height: 100%; color: white;">
+            <div style="height: 100px; text-align: right; font-size: 3rem; padding: 20px;">0</div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 20px;">
+                <button style="background: #333; color: white; border: none; padding: 20px; font-size: 1.5rem; border-radius: 50%;">C</button>
+                <button style="background: #333; color: white; border: none; padding: 20px; font-size: 1.5rem; border-radius: 50%;">+/-</button>
+                <button style="background: #333; color: white; border: none; padding: 20px; font-size: 1.5rem; border-radius: 50%;">%</button>
+                <button style="background: #f60; color: white; border: none; padding: 20px; font-size: 1.5rem; border-radius: 50%;">÷</button>
+                <button style="background: #666; color: white; border: none; padding: 20px; font-size: 1.5rem; border-radius: 50%;">7</button>
+                <button style="background: #666; color: white; border: none; padding: 20px; font-size: 1.5rem; border-radius: 50%;">8</button>
+                <button style="background: #666; color: white; border: none; padding: 20px; font-size: 1.5rem; border-radius: 50%;">9</button>
+                <button style="background: #f60; color: white; border: none; padding: 20px; font-size: 1.5rem; border-radius: 50%;">×</button>
+            </div>
+        </div>
+
+        <!-- SECRET EXIT TRIGGER -->
+        <div onclick="disableCamo()" style="position: absolute; bottom: 0; left: 0; width: 50px; height: 50px; opacity: 0;"></div>
+    </div>
+
+    <div class="oz-mt-12 oz-center" style="padding-bottom: 60px;">
+        <button onclick="window.ORI_APP.navigate('home')" class="oz-btn oz-btn-primary" style="width: 100%; max-width: 400px;" data-i18n="btn_back_home">
+            Revenir à l'accueil OriZen
+        </button>
+    </div>
+
+  <script>
+    function activateCamo(type) {
+        document.getElementById('camoOverlay').style.display = 'block';
+        document.getElementById('camoWeather').style.display = type === 'weather' ? 'block' : 'none';
+        document.getElementById('camoCalc').style.display = type === 'calc' ? 'block' : 'none';
+        
+        // Hide the navigation shell
+        document.querySelector('.oz-header').style.display = 'none';
+        document.querySelector('.oz-nav-bottom').style.display = 'none';
+        document.getElementById('globalSosBtn').style.display = 'none';
+        
+        // Save state
+        localStorage.setItem('oz_camo_active', type);
+    }
+
+    function disableCamo() {
+        document.getElementById('camoOverlay').style.display = 'none';
+        document.querySelector('.oz-header').style.display = 'flex';
+        document.querySelector('.oz-nav-bottom').style.display = 'flex';
+        document.getElementById('globalSosBtn').style.display = 'block';
+        localStorage.removeItem('oz_camo_active');
+    }
+
+    // Check on load
+    if (localStorage.getItem('oz_camo_active')) {
+        activateCamo(localStorage.getItem('oz_camo_active'));
+    }
+  </script>

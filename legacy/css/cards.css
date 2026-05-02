@@ -1,0 +1,397 @@
+/* ============================================
+   OriZen – cards.css
+   Système de cartes global & modulaire
+   Dépend de foundation.css (--oz-*)
+   ============================================ */
+
+/* =================================
+   BASE DES CARTES
+================================= */
+
+.oz-card {
+  background: var(--oz-color-bg-elevated);
+  border: 1px solid var(--oz-color-border-subtle);
+  border-radius: var(--oz-radius-lg);
+
+  padding: var(--oz-space-4);
+  color: var(--oz-color-text);
+
+  box-shadow: var(--oz-shadow-subtle);
+  transition:
+    box-shadow var(--oz-transition-fast),
+    transform var(--oz-transition-fast),
+    border-color var(--oz-transition-fast);
+}
+
+/* Survol intelligent (pas agressif) */
+
+.oz-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--oz-shadow-soft);
+  border-color: var(--oz-color-primary);
+}
+
+/* Contenu vertical spacing */
+
+.oz-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--oz-space-3);
+}
+
+/* Titre & sous-titre */
+
+.oz-card__title {
+  font-size: var(--oz-font-size-lg);
+  font-weight: 600;
+  margin: 0;
+}
+
+.oz-card__subtitle {
+  font-size: var(--oz-font-size-sm);
+  color: var(--oz-color-text-soft);
+  margin: 0;
+}
+
+/* =================================
+   CARTES VARIANTES
+================================= */
+
+/* Carte plus douce, sans dégradé */
+
+.oz-card-soft {
+  background: #0b1120;
+  border-color: rgba(148, 163, 184, 0.15);
+}
+
+/* Carte cliquable entièrement */
+
+.oz-card-clickable {
+  cursor: pointer;
+}
+
+.oz-card-clickable:hover {
+  border-color: var(--oz-color-primary);
+}
+
+/* Carte info – bleu doux */
+
+.oz-card-info {
+  border-color: rgba(96, 165, 250, 0.25);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(37, 99, 235, 0.05));
+}
+
+.oz-card-info:hover {
+  border-color: var(--oz-color-primary);
+}
+
+/* Carte succès – vert */
+
+.oz-card-success {
+  border-color: rgba(34, 197, 94, 0.25);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05));
+}
+
+.oz-card-success:hover {
+  border-color: var(--oz-color-success);
+}
+
+/* Carte alerte – orange */
+
+.oz-card-warning {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05));
+}
+
+.oz-card-warning:hover {
+  border-color: var(--oz-color-warning);
+}
+
+/* Carte danger – rouge primaire */
+
+.oz-card-danger {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05));
+}
+
+.oz-card-danger:hover {
+  border-color: var(--oz-color-danger);
+}
+
+/* Carte URGENTE – style fort (violence, danger immédiat) */
+
+.oz-card-urgent {
+  border-color: rgba(239, 68, 68, 0.75) !important;
+  background: linear-gradient(145deg, rgba(185, 28, 28, 0.25), rgba(127, 29, 29, 0.1));
+  box-shadow: 0 0 20px rgba(185, 28, 28, 0.25);
+
+  animation: oz-card-pulse 2s infinite ease-in-out;
+}
+
+/* Animation légère (psychologie : attirer, pas paniquer) */
+
+@keyframes oz-card-pulse {
+  0% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.25); }
+  50% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.45); }
+  100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.25); }
+}
+
+/* =================================
+   LAYOUT INTÉRIEUR
+================================= */
+
+/* Icône à gauche */
+
+.oz-card__icon {
+  font-size: 1.85rem;
+  color: var(--oz-color-primary);
+}
+
+/* Image */
+
+.oz-card__image {
+  width: 100%;
+  height: auto;
+  border-radius: var(--oz-radius-md);
+  margin-bottom: var(--oz-space-3);
+}
+
+/* Boutons dans les cartes */
+
+.oz-card__actions {
+  display: flex;
+  gap: var(--oz-space-3);
+  margin-top: var(--oz-space-3);
+}
+
+/* =================================
+   CARTES STRUCTURES (ANNULAIRE)
+   Pour : associations, centres sociaux,
+   numéros d’urgence, points jeunes, etc.
+================================= */
+
+.oz-card-structure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--oz-space-3);
+
+  padding: var(--oz-space-4);
+  border-radius: var(--oz-radius-lg);
+  border: 1px solid var(--oz-color-border-subtle);
+
+  background: #0b1120;
+  box-shadow: var(--oz-shadow-subtle);
+
+  transition: transform var(--oz-transition-fast), box-shadow var(--oz-transition-fast);
+}
+
+/* Titre structure */
+
+.oz-card-structure__title {
+  font-size: var(--oz-font-size-lg);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* Adresse + info */
+
+.oz-card-structure__info {
+  font-size: var(--oz-font-size-sm);
+  color: var(--oz-color-text-soft);
+  line-height: 1.5;
+}
+
+/* Tags (ex : “Accueil 24/7”) */
+
+.oz-card-structure__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.oz-tag {
+  padding: 0.15rem 0.45rem;
+  font-size: var(--oz-font-size-xs);
+  border-radius: var(--oz-radius-pill);
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: var(--oz-color-text-muted);
+}
+
+/* Interactions */
+
+.oz-card-structure:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--oz-shadow-soft);
+  border-color: var(--oz-color-primary);
+}
+
+/* =================================
+   CARTES AVEC HEADER (TITRE + BADGE)
+================================= */
+
+.oz-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.oz-card__badge {
+  font-size: var(--oz-font-size-xs);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--oz-radius-pill);
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+/* =================================
+   CARTES “STEP” POUR DÉMARCHES ADMIN
+================================= */
+
+.oz-step-card {
+  display: flex;
+  gap: var(--oz-space-4);
+  align-items: flex-start;
+
+  padding: var(--oz-space-4);
+  border-radius: var(--oz-radius-lg);
+  border: 1px solid var(--oz-color-border-subtle);
+  background: #020617;
+
+  transition: border-color var(--oz-transition-fast), box-shadow var(--oz-transition-fast);
+}
+
+.oz-step-card:hover {
+  border-color: var(--oz-color-primary);
+  box-shadow: var(--oz-shadow-soft);
+}
+
+.oz-step-card__number {
+  width: 2.6rem;
+  height: 2.6rem;
+
+  background: var(--oz-color-primary-subtle);
+  border-radius: var(--oz-radius-pill);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-weight: 600;
+  font-size: var(--oz-font-size-md);
+  color: var(--oz-color-primary);
+}
+
+.oz-step-card__content {
+  flex: 1;
+}
+
+/* =================================
+   RESPONSIVE
+================================= */
+
+@media (max-width: 480px) {
+  .oz-step-card {
+    flex-direction: column;
+    gap: var(--oz-space-3);
+  }
+
+  .oz-card__actions {
+    flex-direction: column;
+  }
+}
+/* ===========================
+   Cartes d'étapes (oz-step-card)
+   =========================== */
+
+.oz-step-card {
+  position: relative;
+  display: flex;
+  gap: var(--oz-space-3);
+  padding: var(--oz-space-4);
+  border-radius: var(--oz-radius-lg);
+  background: radial-gradient(circle at top left, #0b1120 0, #020617 45%, #020617 100%);
+  border: 1px solid var(--oz-color-border-subtle);
+  box-shadow: var(--oz-shadow-subtle);
+}
+
+.oz-step-card__number {
+  flex: 0 0 auto;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--oz-radius-pill);
+  background: var(--oz-color-primary-subtle);
+  border: 1px solid rgba(37, 99, 235, 0.6);
+  color: var(--oz-color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: var(--oz-font-size-sm);
+  margin-top: 0.15rem;
+}
+
+.oz-step-card__content {
+  flex: 1 1 auto;
+}
+
+/* ===========================
+   Cartes "structures" (annuaire / où aller)
+   =========================== */
+
+.oz-card-structure {
+  border-radius: var(--oz-radius-lg);
+  background: #020617;
+  border: 1px solid var(--oz-color-border-subtle);
+  padding: var(--oz-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--oz-space-3);
+  box-shadow: var(--oz-shadow-subtle);
+}
+
+.oz-card-structure__title {
+  font-size: var(--oz-font-size-lg);
+  margin-bottom: var(--oz-space-1);
+}
+
+.oz-card-structure__info {
+  font-size: var(--oz-font-size-sm);
+  color: var(--oz-color-text-soft);
+  margin: 0;
+}
+
+.oz-card-structure__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--oz-space-2);
+}
+
+/* ===========================
+   Tags / étiquettes légales
+   =========================== */
+
+.oz-chat-legal__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--oz-space-2);
+  margin-bottom: var(--oz-space-3);
+}
+
+.oz-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.7rem;
+  border-radius: var(--oz-radius-pill);
+  font-size: var(--oz-font-size-xs);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.9);
+  color: var(--oz-color-text-muted);
+  white-space: nowrap;
+}
+
+.oz-chat-legal__note {
+  font-size: var(--oz-font-size-sm);
+  color: var(--oz-color-text-soft);
+  margin: 0;
+}
