@@ -161,7 +161,7 @@
 /******/ 		// This function allow to reference async chunks
 /******/ 		__webpack_require__.u = (chunkId) => {
 /******/ 			// return url for filenames based on template
-/******/ 			return "static/chunks/" + chunkId + ".js";
+/******/ 			return undefined;
 /******/ 		};
 /******/ 	})();
 /******/ 	
@@ -179,7 +179,7 @@
 /******/ 		// This function allow to reference async chunks
 /******/ 		__webpack_require__.miniCssF = (chunkId) => {
 /******/ 			// return url for filenames based on template
-/******/ 			return "static/css/" + chunkId + ".css";
+/******/ 			return undefined;
 /******/ 		};
 /******/ 	})();
 /******/ 	
@@ -190,7 +190,7 @@
 /******/ 	
 /******/ 	/* webpack/runtime/getFullHash */
 /******/ 	(() => {
-/******/ 		__webpack_require__.h = () => ("a639dd9b4635e955")
+/******/ 		__webpack_require__.h = () => ("8e36fa21ce406868")
 /******/ 	})();
 /******/ 	
 /******/ 	/* webpack/runtime/global */
@@ -697,7 +697,7 @@
 /******/ 	
 /******/ 	/* webpack/runtime/publicPath */
 /******/ 	(() => {
-/******/ 		__webpack_require__.p = "/_next/";
+/******/ 		__webpack_require__.p = "/OriZen/_next/";
 /******/ 	})();
 /******/ 	
 /******/ 	/* webpack/runtime/react refresh */
@@ -791,23 +791,7 @@
 /******/ 				createStylesheet(chunkId, fullhref, resolve, reject);
 /******/ 			});
 /******/ 		}
-/******/ 		// object to store loaded CSS chunks
-/******/ 		var installedCssChunks = {
-/******/ 			"webpack": 0
-/******/ 		};
-/******/ 		
-/******/ 		__webpack_require__.f.miniCss = (chunkId, promises) => {
-/******/ 			var cssChunks = {"_app-pages-browser_src_components_Map_tsx":1};
-/******/ 			if(installedCssChunks[chunkId]) promises.push(installedCssChunks[chunkId]);
-/******/ 			else if(installedCssChunks[chunkId] !== 0 && cssChunks[chunkId]) {
-/******/ 				promises.push(installedCssChunks[chunkId] = loadStylesheet(chunkId).then(() => {
-/******/ 					installedCssChunks[chunkId] = 0;
-/******/ 				}, (e) => {
-/******/ 					delete installedCssChunks[chunkId];
-/******/ 					throw e;
-/******/ 				}));
-/******/ 			}
-/******/ 		};
+/******/ 		// no chunk loading
 /******/ 		
 /******/ 		var oldTags = [];
 /******/ 		var newTags = [];

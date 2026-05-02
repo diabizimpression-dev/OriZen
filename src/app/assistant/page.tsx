@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, Utensils, HeartPulse, AlertTriangle, FileText,
   ArrowLeft, Send, Phone, MapPin, Mic, MicOff, Loader2,
-  Zap, BrainCircuit, History, X, Bot
+  Zap, BrainCircuit, History, X, Bot, ShieldCheck
 } from "lucide-react";
 import Link from "next/link";
 import gsap from "gsap";

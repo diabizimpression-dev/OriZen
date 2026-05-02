@@ -7,7 +7,8 @@ import L from "leaflet";
 import { 
   ArrowLeft, Navigation, Phone, MapPin, 
   FileText, AlertCircle, CheckCircle, Zap,
-  Compass, Info, MoreVertical
+  Compass, Info, MoreVertical, Home, Utensils,
+  Clock, MessageCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SCENARIOS } from "../lib/scenarios";
