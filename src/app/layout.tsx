@@ -7,7 +7,7 @@ import Onboarding from "@/components/Onboarding";
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-space-grotesk",
-  weight: ["300", "400", "500", "600", "700", "900"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 const inter = Inter({
