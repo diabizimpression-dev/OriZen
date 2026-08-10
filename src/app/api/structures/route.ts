@@ -260,13 +260,44 @@ export async function GET(request: Request) {
   }
 
   try {
-    const structures = await fetchOverpass(lat, lng, radius, type);
+    // Pour sante : enrichir avec FINESS (base officielle Min. Santé) en parallèle avec Overpass
+    const [osmStructures, finessData] = await Promise.allSettled([
+      fetchOverpass(lat, lng, radius, type),
+      (type === "sante" || type === "tous")
+        ? fetch(
+            `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/finess?lat=${lat}&lng=${lng}&type=sante&radius=${radius}`,
+            { signal: AbortSignal.timeout(8000) }
+          ).then((r) => r.json())
+        : Promise.resolve(null),
+    ]);
 
-    if (structures.length > 0) {
-      return NextResponse.json({ ok: true, source: "osm", count: structures.length, structures });
+    let structures = osmStructures.status === "fulfilled" ? osmStructures.value : [];
+
+    // Merger les résultats FINESS (dédupliqués par distance ~50m)
+    if (
+      finessData.status === "fulfilled" &&
+      finessData.value?.structures?.length > 0
+    ) {
+      const finessStructures = finessData.value.structures;
+      for (const fs of finessStructures) {
+        const duplicate = structures.some(
+          (s) => haversineDistance(s.lat, s.lng, fs.lat, fs.lng) < 80
+        );
+        if (!duplicate) structures.push(fs);
+      }
+      structures = structures.sort((a, b) => (a.distance_m ?? 9999) - (b.distance_m ?? 9999)).slice(0, 25);
     }
 
-    // Fallback si Overpass renvoie 0 résultats
+    if (structures.length > 0) {
+      return NextResponse.json({
+        ok: true,
+        source: finessData.status === "fulfilled" && finessData.value?.structures?.length > 0 ? "osm+finess" : "osm",
+        count: structures.length,
+        structures,
+      });
+    }
+
+    // Fallback si Overpass + FINESS renvoient 0 résultats
     const fallback = FALLBACK_STRUCTURES.filter(
       (s) => type === "tous" || s.type === type || s.type === "tous"
     ).map((s) => ({
@@ -276,9 +307,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ ok: true, source: "fallback", count: fallback.length, structures: fallback });
   } catch (err) {
-    console.error("[/api/structures] Overpass error:", err);
+    console.error("[/api/structures] error:", err);
 
-    // Fallback en cas d'erreur réseau
     const fallback = FALLBACK_STRUCTURES.filter(
       (s) => type === "tous" || s.type === type || s.type === "tous"
     ).map((s) => ({

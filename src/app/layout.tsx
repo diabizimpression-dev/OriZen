@@ -15,8 +15,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "OriZen | Premium Social Aid",
-  description: "Accès universel à l'aide sociale et aux services d'urgence.",
+  title: "OriZen | GPS des droits sociaux",
+  description: "Hébergement d'urgence, soins gratuits, droits sociaux · France · 24h/24",
+  manifest: "/manifest.json",
+  themeColor: "#020617",
+  viewport: { width: "device-width", initialScale: 1, maximumScale: 1 },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "OriZen" },
 };
 
 export default function RootLayout({

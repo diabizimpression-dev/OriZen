@@ -41,9 +41,8 @@ FORMAT obligatoire :
 **Contact** : [Numéro ou adresse concrète]`;
 
 // Fetch structures géolocalisées pour enrichir le contexte
-async function getStructuresContext(lat: number, lng: number, type: string): Promise<string> {
+async function getStructuresContext(lat: number, lng: number, type: string, baseUrl: string): Promise<string> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const res = await fetch(
       `${baseUrl}/api/structures?lat=${lat}&lng=${lng}&type=${type}&radius=3000`,
       { signal: AbortSignal.timeout(5000) }
@@ -75,7 +74,25 @@ function detectScenario(message: string): string {
   return "tous";
 }
 
-export async function POST(req: Request) {
+// Réponse statique si GROQ_API_KEY absent — couvre les cas d'urgence principaux
+function getFallbackReply(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes("dormir") || lower.includes("logement") || lower.includes("hébergement") || lower.includes("rue"))
+    return "**Situation** : Besoin d'hébergement d'urgence.\n**Action** : Appelez le 115 maintenant — gratuit, 24h/24, aucun document requis.\n**Contact** : 📞 115 (SAMU Social)";
+  if (lower.includes("manger") || lower.includes("faim") || lower.includes("nourriture"))
+    return "**Situation** : Besoin d'aide alimentaire.\n**Action** : Contactez les Restos du Cœur ou la Croix-Rouge.\n**Contact** : 📞 0800 130 000 (Restos du Cœur, gratuit)";
+  if (lower.includes("danger") || lower.includes("violence") || lower.includes("agression"))
+    return "**Situation** : Danger immédiat.\n**Action** : Appelez la police maintenant.\n**Contact** : 📞 17 (Police) · 📞 3919 (violences conjugales)";
+  if (lower.includes("soigner") || lower.includes("médecin") || lower.includes("malade"))
+    return "**Situation** : Besoin de soins.\n**Action** : Allez aux urgences de l'hôpital public — soins gratuits sans carte vitale via le PASS.\n**Contact** : 📞 15 (SAMU) en cas d'urgence médicale";
+  if (lower.includes("papier") || lower.includes("asile") || lower.includes("titre"))
+    return "**Situation** : Problème de titre de séjour ou asile.\n**Action** : Contactez France Terre d'Asile ou rendez-vous à la Préfecture.\n**Contact** : 📞 01 53 04 39 99 (France Terre d'Asile)";
+  if (lower.includes("mineur") || lower.includes("enfant") || lower.includes("jeune"))
+    return "**Situation** : Mineur en difficulté.\n**Action** : Appelez le 119 — gratuit, anonyme, 24h/24.\n**Contact** : 📞 119 (Allô Enfance en Danger)";
+  return "**Action** : Appelez le 115 (SAMU Social, gratuit 24h/24) pour une orientation immédiate.\n**Contact** : 📞 115 · 📞 15 (urgence médicale) · 📞 17 (police)\n\n⚠️ Pour activer l'assistant IA, ajoutez votre GROQ_API_KEY dans .env.local";
+}
+
+export async function POST(req: Request & { url?: string }) {
   try {
     const body = await req.json();
     const message: string = (body.message || "").trim();
@@ -86,11 +103,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Message vide" }, { status: 400 });
     }
 
+    // Détecter l'URL de base depuis la requête (fonctionne quel que soit le port)
+    const reqUrl = new URL(req.url ?? "http://localhost:3000");
+    const baseUrl = `${reqUrl.protocol}//${reqUrl.host}`;
+
     // Contexte géo si localisation disponible
     let geoContext = "";
     if (location?.lat && location?.lng) {
       const scenario = detectScenario(message);
-      geoContext = await getStructuresContext(location.lat, location.lng, scenario);
+      geoContext = await getStructuresContext(location.lat, location.lng, scenario, baseUrl);
     }
 
     const systemContent = ORIZEN_SYSTEM_PROMPT + geoContext;
@@ -104,10 +125,16 @@ export async function POST(req: Request) {
       { role: "user" as const, content: message },
     ];
 
+    // Si clé absente → réponse statique d'urgence (ne jamais bloquer l'utilisateur)
+    if (!process.env.GROQ_API_KEY) {
+      const fallback = getFallbackReply(message);
+      return NextResponse.json({ reply: fallback, ok: true, source: "fallback" });
+    }
+
     const completion = await groq.chat.completions.create({
       model: "llama-3.1-8b-instant",
-      temperature: 0.2,   // Bas pour des réponses cohérentes et factuelles
-      max_tokens: 400,    // Forcément court
+      temperature: 0.2,
+      max_tokens: 400,
       messages,
     });
 
